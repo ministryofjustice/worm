@@ -19,7 +19,7 @@ class DownloadCommand extends Command
      *
      * @var string
      */
-    protected $description = 'Command description';
+    protected $description = 'Download all multisite assets stored in s3 bucket.';
 
     /**
      * Execute the console command.
@@ -28,7 +28,9 @@ class DownloadCommand extends Command
      */
     public function handle()
     {
-        //
+        $proceed = $this->ask('');
+        
+        passthru("aws s3 sync");
     }
 
     /**
