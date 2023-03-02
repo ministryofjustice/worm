@@ -12,7 +12,7 @@ class DownloadCommand extends Command
      *
      * @var string
      */
-    protected $signature = 's3:Download';
+    protected $signature = 's3:download';
 
     /**
      * The description of the command.
