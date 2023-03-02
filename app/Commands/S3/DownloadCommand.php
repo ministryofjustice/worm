@@ -12,7 +12,7 @@ class DownloadCommand extends Command
      *
      * @var string
      */
-    protected $signature = 's3:download';
+    protected $signature = 's3:download { bucket: s3 bucket name } { profile: AWS s3 profile name }';
 
     /**
      * The description of the command.
@@ -28,12 +28,13 @@ class DownloadCommand extends Command
      */
     public function handle()
     {
-        $proceed = $this->ask('');
-        
-        passthru("aws s3 sync");
+        $bucket = $this->argument('bucket');
+        $profile = $this->argument('profile');
+
+        passthru("aws s3 sync s3://$bucket . --profile $profile");
     }
 
-    /**
+    /*
      * Define the command's schedule.
      *
      * @param  \Illuminate\Console\Scheduling\Schedule  $schedule
