@@ -12,7 +12,7 @@ class DownloadCommand extends Command
      *
      * @var string
      */
-    protected $signature = 's3:download { bucket: s3 bucket name } { profile: AWS s3 profile name }';
+    protected $signature = 's3:download { bucket : s3 bucket name } { profile : AWS s3 profile name }';
 
     /**
      * The description of the command.
