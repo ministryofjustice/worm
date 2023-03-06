@@ -1,4 +1,3 @@
-
 # Wordpress Online Resource Manager (WORM)
 
 WORM is tool to help manage databases and media assets
@@ -8,7 +7,7 @@ It is based off the [Laravel-Zero](https://laravel-zero.com/) framework.
 
 ## Environments
 
-WORM can be applied on the following:
+WORM targets the following environments:
 * Local
 * Demo
 * Dev
