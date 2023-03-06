@@ -12,7 +12,7 @@ class UploadCommand extends Command
      *
      * @var string
      */
-    protected $signature = 's3:upload';
+    protected $signature = 's3:upload { bucket : s3 bucket name } { profile : AWS s3 profile name }';
 
     /**
      * The description of the command.
@@ -28,7 +28,18 @@ class UploadCommand extends Command
      */
     public function handle()
     {
-        //
+        $bucket = $this->argument('bucket');
+        $profile = $this->argument('profile');
+
+        $path = rtrim(shell_exec('pwd'));
+
+        if(!is_dir($path."/uploads")){
+            $this->info('Uploads Directory not found');
+            
+            return;
+        }
+
+        passthru("aws s3 sync $path/uploads s3://$bucket/uploads --profile $profile");
     }
 
     /**
