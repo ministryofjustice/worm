@@ -1,3 +1,5 @@
 *.sql
-/vendor
 .env
+.DS_Store
+/vendor
+/builds
