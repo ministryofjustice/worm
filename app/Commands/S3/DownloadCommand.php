@@ -33,10 +33,11 @@ class DownloadCommand extends Command
 
         $path = rtrim(shell_exec('pwd'));
 
+        # Check that there is a /wordpress folder in the directory this is run
         if(!is_dir($path."/wordpress")){
-            $this->info('No wordpress directory found here. You need
-                to be in the root dir of the hale-platform repo and have run
-                the site locally, so that the wordpress folder is generated.');
+            $this->info('Wordpress installation not found. Check you are in the root
+                directory of the hale-platform repo and have already run
+                the site locally, so that a wordpress folder has been generated.');
             return;
         }
 
