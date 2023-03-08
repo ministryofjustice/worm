@@ -33,13 +33,17 @@ class UploadCommand extends Command
 
         $path = rtrim(shell_exec('pwd'));
 
-        if(!is_dir($path."/uploads")){
-            $this->info('Uploads Directory not found');
-            
+        # Check that there is a /wordpress folder in the directory this is run
+        if(!is_dir($path."/wordpress")){
+            $this->info('Wordpress installation not found. Check you are in the root
+                directory of the hale-platform repo and have already run
+                the site locally, so that a wordpress folder has been generated.');
             return;
         }
 
-        passthru("aws s3 sync $path/uploads s3://$bucket/uploads --profile $profile");
+        $uploadsPath = $path."/wordpress/wp-content/uploads";
+
+        passthru("aws s3 sync $uploadsPath s3://$bucket/uploads --profile $profile");
     }
 
     /**
