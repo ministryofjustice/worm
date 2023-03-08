@@ -31,7 +31,18 @@ class DownloadCommand extends Command
         $bucket = $this->argument('bucket');
         $profile = $this->argument('profile');
 
-        passthru("aws s3 sync s3://$bucket . --profile $profile");
+        $path = rtrim(shell_exec('pwd'));
+
+        if(!is_dir($path."/wordpress")){
+            $this->info('No wordpress directory found here. You need
+                to be in the root dir of the hale-platform repo and have run
+                the site locally, so that the wordpress folder is generated.');
+            return;
+        }
+
+        $uploadsPath = $path."/wordpress/wp-content";
+
+        passthru("aws s3 sync s3://$bucket $uploadsPath --profile $profile");
     }
 
     /*
