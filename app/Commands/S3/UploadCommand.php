@@ -12,7 +12,7 @@ class UploadCommand extends Command
      *
      * @var string
      */
-    protected $signature = 's3:upload';
+    protected $signature = 's3:upload { bucket : s3 bucket name } { profile : AWS s3 profile name }';
 
     /**
      * The description of the command.
@@ -28,7 +28,22 @@ class UploadCommand extends Command
      */
     public function handle()
     {
-        //
+        $bucket = $this->argument('bucket');
+        $profile = $this->argument('profile');
+
+        $path = rtrim(shell_exec('pwd'));
+
+        # Check that there is a /wordpress folder in the directory this is run
+        if(!is_dir($path."/wordpress")){
+            $this->info('Wordpress installation not found. Check you are in the root
+                directory of the hale-platform repo and have already run
+                the site locally, so that a wordpress folder has been generated.');
+            return;
+        }
+
+        $uploadsPath = $path."/wordpress/wp-content/uploads";
+
+        passthru("aws s3 sync $uploadsPath s3://$bucket/uploads --profile $profile");
     }
 
     /**
