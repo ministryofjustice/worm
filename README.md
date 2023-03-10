@@ -15,7 +15,8 @@ WORM targets the following environments, `Local`, `Demo`, `Dev`, `Staging` & `Pr
 
 * [AWS
   Cli](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) setup on your local machine
-* [PHP Composer](https://getcomposer.org/) - For doing dev work on WORM
+* [PHP Composer](https://getcomposer.org/) - generates the /vendor folder with
+  autoloader that is required to run app.
 * [Authentication to
   CloudPlatforms](https://user-guide.cloud-platform.service.justice.gov.uk/documentation/getting-started/kubectl-config.html) k8s cluster setup on your local machine
 * [Cloud Platform's
@@ -23,7 +24,11 @@ WORM targets the following environments, `Local`, `Demo`, `Dev`, `Staging` & `Pr
 
 ## Installation
 
-Download and run `make install` in this repository's root directory. 
+
+Download and run `composer install` in this repository's root directory. This
+will create a vendor folder. Then run `make install` which compiles the app
+into a binary and system links it so that it is available globally on your
+machine. 
 
 You will be prompted to enter your Mac OS password so the system links can be established. You will
 also need to have `AWS`, `kubectl`, `cloud-platform` and `php` installed on your command line.
