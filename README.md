@@ -34,6 +34,7 @@ also need to have `AWS`, `kubectl`, `cloud-platform` and `php` installed on your
 * Upload database or media assets from any environment.
 * Check WordPress sites installed on multisite and their blog ids.
 * Display wpsecrets `worm status --secrets`
+* Display list of sites on multisite cluster `worm listSites`
 
 ## License
 
