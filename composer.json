@@ -1,6 +1,6 @@
 {
     "name": "ministryofjustice/worm",
-    "description": "WORM",
+    "description": "WordPress Online Resource Manger - tool for working with WPMS",
     "keywords": ["framework", "laravel", "laravel zero", "console", "cli"],
     "type": "project",
     "license": "MIT",
@@ -13,7 +13,9 @@
     "require-dev": {
         "laravel/pint": "^1.5",
         "mockery/mockery": "^1.5.1",
-        "pestphp/pest": "^1.22.3"
+        "pestphp/pest": "^1.22.3",
+        "composer/composer": "*",
+        "squizlabs/php_codesniffer": "*"
     },
     "autoload": {
         "psr-4": {
@@ -34,6 +36,11 @@
         "allow-plugins": {
             "pestphp/pest-plugin": true
         }
+    },
+    "scripts": {
+        "phpcs-config-set" : "phpcs --config-set ignore_warnings_on_exit 1",
+        "phpcs": "phpcs --extensions=php --ignore=*/vendor/* --standard=PSR12 .",
+        "phpcbf": "phpcbf --extensions=php --ignore=*/vendor/* --standard=PSR12 ."
     },
     "minimum-stability": "stable",
     "prefer-stable": true,
