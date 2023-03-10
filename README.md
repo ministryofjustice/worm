@@ -42,6 +42,7 @@ also need to have `AWS`, `kubectl`, `cloud-platform` and `php` installed on your
 * Check WordPress sites installed on multisite and their blog ids.
 * Display wpsecrets `worm status --secrets`
 * Display list of sites on multisite cluster `worm listSites`
+* Setup AWS Profiles for s3, rds and ecr list for current namespace `worm setup:createProfiles`
 
 ## License
 
