@@ -12,7 +12,7 @@ class ImportCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'db:import { path : path of sql file to import } { blogID : blog id of remote site db you want to replace. }';
+    protected $signature = 'db:import { path : path of sql file to import } {--blogID= : blog id of remote site db you want to replace. }';
 
     /**
      * The description of the command.
@@ -33,7 +33,8 @@ class ImportCommand extends Command
         $podExec = "kubectl exec -it -c wordpress pod/$podName --";
         $namespace = shell_exec('kubectl config view --minify -o jsonpath="{..namespace}"');
 
-        $blogID = $this->argument('blogID');
+        $blogID = $this->option('blogID');
+
         $sqlFilePath = $this->argument('path');
         $sqlFile = basename($this->argument('path'));
 
@@ -43,23 +44,29 @@ class ImportCommand extends Command
         if ( $proceed != 'yes' && $proceed != 'y' ) {
             return;
         }
+        
+        # Apply checks if user inputs a blog id for a single site import
+        if ($blogID != null) {
 
-        $siteCheckLocal = rtrim(shell_exec("cat $sqlFilePath | grep wp_'$blogID'_commentmeta"));
-        $siteCheckRemote = rtrim(shell_exec("$podExec wp site list --site__in=$blogID --field=blog_id --format=csv"));
+            $this->info('Checking local file and remote blog match blog id entered.');
 
-        # Should return data otherwise grep has found nothing
-        if (!strlen($siteCheckLocal) > 0)  {
-            $this->info('Error, the database file and blog id param you provided
-                do not have matching blog ids.');
-            return;
-        };
+            $siteCheckLocal = rtrim(shell_exec("cat $sqlFilePath | grep wp_'$blogID'_commentmeta"));
+            $siteCheckRemote = rtrim(shell_exec("$podExec wp site list --site__in=$blogID --field=blog_id --format=csv"));
 
-        # Match the remote blog id with the one entered
-        if ($siteCheckRemote != $blogID)  {
-            $this->info('The blogID you entered does not exist on the remote site. 
-                Create the site first and then run the db import into it.');
-            return;
-        };
+            # Should return data otherwise grep has found nothing
+            if (!strlen($siteCheckLocal) > 0)  {
+                $this->info('Error, the database file and blog id param you provided
+                    do not have matching blog ids.');
+                return;
+            };
+
+            # Match the remote blog id with the one entered
+            if ($siteCheckRemote != $blogID)  {
+                $this->info('The blogID you entered does not exist on the remote site. 
+                    Create the site first and then run the db import into it.');
+                return;
+            };
+        }
 
         $this->info('Get URLs to run WP find & replace on imported database:');
 
