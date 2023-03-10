@@ -12,7 +12,7 @@ class StatusCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'status';
+    protected $signature = 'status {--secrets : print out namespace wpsecrets}';
 
     /**
      * The description of the command.
@@ -30,6 +30,16 @@ class StatusCommand extends Command
     {
         $namespace = shell_exec('kubectl config view --minify -o jsonpath="{..namespace}"');
         $this->info("Your current namespace: " . $namespace );
+
+        if ($this->option('secrets')) {
+            $podName = rtrim(shell_exec('kubectl get pods -o=name | grep -m 1 wordpress | sed "s/^.\{4\}//"'));
+            
+            # Current k8s secret name
+            $secretName = rtrim(shell_exec("kubectl describe pods/$podName | grep -oP 'wpsecrets-\d\d'"));
+
+            $secrets = shell_exec("cloud-platform decode-secret -n $namespace -s $secretName");
+            $this->info($secrets);
+        }
     }
 
     /**

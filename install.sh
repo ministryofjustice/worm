@@ -30,6 +30,15 @@ then
     exit
 fi
 
+# Check we have kubectl installed
+if ! command -v cloud-platform &> /dev/null
+then
+    echo "cloud-platform could not found on this machine, and is a requirement
+    for WORM. Run brew install ministryofjustice/cloud-platform-tap/cloud-platform-cli
+    Terminating install."
+    exit
+fi
+
 # Build binary of latest worm
 php worm app:build --build-version=0.3.0 --no-interaction
 

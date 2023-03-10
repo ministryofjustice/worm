@@ -16,6 +16,8 @@ WORM targets the following environments, `Local`, `Demo`, `Dev`, `Staging` & `Pr
 * AWS Cli setup on your local machine
 * PHP Composer
 * Authentication to CloudPlatforms k8s cluster setup on your local machine
+* [Cloud Platform's
+  cli](https://user-guide.cloud-platform.service.justice.gov.uk/documentation/getting-started/cloud-platform-cli.html#cloud-platform-cli)
 
 ## Installation
 
@@ -29,6 +31,7 @@ also need to have `AWS`, `kubectl` and `php` installed on your command line.
 * Download database or media assets from any environment.
 * Upload database or media assets from any environment.
 * Check WordPress sites installed on multisite and their blog ids.
+* Display wpsecrets `worm status --secrets`
 
 ## License
 

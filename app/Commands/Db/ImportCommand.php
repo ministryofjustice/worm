@@ -12,14 +12,14 @@ class ImportCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'db:import { path : Path of sql file to import. }';
+    protected $signature = 'db:import { path : path of sql file to import } {--blogID= : blog id of remote site db you want to replace. }';
 
     /**
      * The description of the command.
      *
      * @var string
      */
-    protected $description = 'Import WP multisite database in .sql file format.';
+    protected $description = 'Import WP multisite database(s) in .sql file format.';
 
     /**
      * Execute the console command.
@@ -28,33 +28,57 @@ class ImportCommand extends Command
      */
     public function handle()
     {
-        # Path entered in by user '/user/wp.sql'
-        $sqlFilePath = $this->argument('path');
-
-        # Generate file name without path 
-        $sqlFile = basename($this->argument('path'));
-
-        # Get current namespace in k8s cluster
+        # Get current pod name to shell into and run wpcli
+        $podName = rtrim(shell_exec('kubectl get pods -o=name | grep -m 1 wordpress | sed "s/^.\{4\}//"'));
+        $podExec = "kubectl exec -it -c wordpress pod/$podName --";
         $namespace = shell_exec('kubectl config view --minify -o jsonpath="{..namespace}"');
 
-        $this->info("Your current namespace: " . $namespace );
+        $blogID = $this->option('blogID');
 
-        $proceed = $this->ask('Do you wish to proceed? [yes|no]');
+        $sqlFilePath = $this->argument('path');
+        $sqlFile = basename($this->argument('path'));
 
-        if ( $proceed != 'yes' ) {
+        # Confirm that the person is in the right namespace
+        $proceed = $this->ask("Your current namespace is $namespace. Do you wish to proceed?");
+
+        if ( $proceed != 'yes' && $proceed != 'y' ) {
             return;
         }
+        
+        # Apply checks if user inputs a blog id for a single site import
+        if ($blogID != null) {
+
+            $this->info('Checking local file and remote blog match blog id entered.');
+
+            $siteCheckLocal = rtrim(shell_exec("cat $sqlFilePath | grep wp_'$blogID'_commentmeta"));
+            $siteCheckRemote = rtrim(shell_exec("$podExec wp site list --site__in=$blogID --field=blog_id --format=csv"));
+
+            # Should return data otherwise grep has found nothing
+            if (!strlen($siteCheckLocal) > 0)  {
+                $this->info('Error, the database file and blog id param you provided
+                    do not have matching blog ids.');
+                return;
+            };
+
+            # Match the remote blog id with the one entered
+            if ($siteCheckRemote != $blogID)  {
+                $this->info('The blogID you entered does not exist on the remote site. 
+                    Create the site first and then run the db import into it.');
+                return;
+            };
+        }
+
+        $this->info('Get URLs to run WP find & replace on imported database:');
 
         # Get URLs to run WP find and replace on database
-        $oldURL = $this->ask('Old URL:');
-        $newURL = $this->ask('New URL:');
+        $oldURL = rtrim($this->ask('Old URL:'));
+        $newURL = rtrim($this->ask('New URL:'));
 
         $urlsMatch = false;
 
         if ($oldURL === $newURL) {
             $this->info('URLs match, will not run WP URL search and replace on db.');
             $urlsMatch = true;
-
         }
 
         if (!file_exists($sqlFilePath)) {
@@ -72,21 +96,18 @@ class ImportCommand extends Command
             return;
         }
 
-        # Retreive a pod name currently running WordPress 
-        $podName = rtrim(shell_exec('kubectl get pods -o=name | grep -m 1 wordpress | sed "s/^.\{4\}//"'));
-
         # Copy SQL from local machine to container
         passthru("kubectl cp $sqlFilePath $namespace/$podName:$sqlFile -c wordpress");
 
         # Import DB into RDS database
-        passthru("kubectl exec -it -c wordpress pod/$podName -- wp db import $sqlFile");
+        passthru("$podExec wp db import $sqlFile");
 
         # Delete SQL file in container no longer needed
-        passthru("kubectl exec -it -c wordpress pod/$podName -- rm $sqlFile");
+        passthru("$podExec rm $sqlFile");
 
         # Perform string replace on imported DB
         if ($urlsMatch != true) { 
-            passthru("kubectl exec -it -c wordpress pod/$podName -- wp search-replace $oldURL $newURL --url=$oldURL --network");
+            passthru("$podExec wp search-replace $oldURL $newURL --url=$oldURL --network");
         }
     }
 
