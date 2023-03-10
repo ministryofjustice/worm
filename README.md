@@ -26,7 +26,7 @@ WORM targets the following environments, `Local`, `Demo`, `Dev`, `Staging` & `Pr
 Download and run `make install` in this repository's root directory. 
 
 You will be prompted to enter your Mac OS password so the system links can be established. You will
-also need to have `AWS`, `kubectl` and `php` installed on your command line.
+also need to have `AWS`, `kubectl`, `cloud-platform` and `php` installed on your command line.
 
 ## Features
 
