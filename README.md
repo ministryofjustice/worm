@@ -1,5 +1,5 @@
 # Wordpress Online Resource Manager (WORM)
-
+[![PHP linting and CS Git Action](https://github.com/ministryofjustice/worm/actions/workflows/phplintp.yml/badge.svg)](https://github.com/ministryofjustice/worm/actions/workflows/phplintp.yml)
 ![WORM cli interface](https://github.com/ministryofjustice/worm/blob/assets/screenshot.png)
 
 WORM is a command line tool that helps manage databases and media assets
