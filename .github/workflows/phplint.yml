@@ -10,6 +10,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+      with:
+        repository: ${{ github.event.pull_request.head.repo.full_name }}
+        ref: ${{ github.event.pull_request.head.ref }}
 
     - name: Validate composer.json and composer.lock
       run: composer validate
@@ -40,15 +43,10 @@ jobs:
       run : composer phpcs
       # Fail if error is detected
 
-    - name: GIT add-push linted code
-      run: |
-        git config --global user.name "${{ github.actor }}"
-        git config --global user.email "${{ github.actor }}@users.noreply.github.com"
-        git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/$GITHUB_REPOSITORY
-        git config pull.rebase false
-        git pull
-        git commit -am "Automated code lint ${{ github.sha }}"
-        git push
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      continue-on-error: true
+    - name: Add & Commit
+      uses: EndBug/add-and-commit@v9.1.1
+      with:
+        add: '.'
+        author_name: "${{ github.actor }}"
+        author_email: "${{ github.actor }}@users.noreply.github.com"
+        message: "Automated code lint ${{ github.sha }}"
