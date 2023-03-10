@@ -13,9 +13,11 @@ WORM targets the following environments, `Local`, `Demo`, `Dev`, `Staging` & `Pr
 
 ## Required
 
-* AWS Cli setup on your local machine
-* PHP Composer
-* Authentication to CloudPlatforms k8s cluster setup on your local machine
+* [AWS
+  Cli](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) setup on your local machine
+* [PHP Composer](https://getcomposer.org/) - For doing dev work on WORM
+* [Authentication to
+  CloudPlatforms](https://user-guide.cloud-platform.service.justice.gov.uk/documentation/getting-started/kubectl-config.html) k8s cluster setup on your local machine
 * [Cloud Platform's
   cli](https://user-guide.cloud-platform.service.justice.gov.uk/documentation/getting-started/cloud-platform-cli.html#cloud-platform-cli)
 
