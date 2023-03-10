@@ -31,6 +31,7 @@ also need to have `AWS`, `kubectl` and `php` installed on your command line.
 * Download database or media assets from any environment.
 * Upload database or media assets from any environment.
 * Check WordPress sites installed on multisite and their blog ids.
+* Display wpsecrets `worm status --secrets`
 
 ## License
 
