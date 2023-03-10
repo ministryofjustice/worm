@@ -41,27 +41,26 @@ class ImportCommand extends Command
         # Confirm that the person is in the right namespace
         $proceed = $this->ask("Your current namespace is $namespace. Do you wish to proceed?");
 
-        if ( $proceed != 'yes' && $proceed != 'y' ) {
+        if ($proceed != 'yes' && $proceed != 'y') {
             return;
         }
-        
+
         # Apply checks if user inputs a blog id for a single site import
         if ($blogID != null) {
-
             $this->info('Checking local file and remote blog match blog id entered.');
 
             $siteCheckLocal = rtrim(shell_exec("cat $sqlFilePath | grep wp_'$blogID'_commentmeta"));
             $siteCheckRemote = rtrim(shell_exec("$podExec wp site list --site__in=$blogID --field=blog_id --format=csv"));
 
             # Should return data otherwise grep has found nothing
-            if (!strlen($siteCheckLocal) > 0)  {
+            if (!strlen($siteCheckLocal) > 0) {
                 $this->info('Error, the database file and blog id param you provided
                     do not have matching blog ids.');
                 return;
             };
 
             # Match the remote blog id with the one entered
-            if ($siteCheckRemote != $blogID)  {
+            if ($siteCheckRemote != $blogID) {
                 $this->info('The blogID you entered does not exist on the remote site. 
                     Create the site first and then run the db import into it.');
                 return;
@@ -106,7 +105,7 @@ class ImportCommand extends Command
         passthru("$podExec rm $sqlFile");
 
         # Perform string replace on imported DB
-        if ($urlsMatch != true) { 
+        if ($urlsMatch != true) {
             passthru("$podExec wp search-replace $oldURL $newURL --url=$oldURL --network");
         }
     }
