@@ -35,7 +35,7 @@ class StatusCommand extends Command
             $podName = rtrim(shell_exec('kubectl get pods -o=name | grep -m 1 wordpress | sed "s/^.\{4\}//"'));
 
             # Current k8s secret name
-            $secretName = rtrim(shell_exec("kubectl describe pods/$podName | grep -oP 'wpsecrets-\d\d'"));
+            $secretName = rtrim(shell_exec("kubectl describe pods/$podName | grep -o 'wpsecrets-[[:digit:]][[:digit:]]*'"));
 
             $secrets = shell_exec("cloud-platform decode-secret -n $namespace -s $secretName");
             $this->info($secrets);
