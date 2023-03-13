@@ -47,7 +47,7 @@ class DownloadCommand extends Command
         if ($blogID === null) {
             passthru("aws s3 sync s3://$bucket $uploadsPath --profile $profile");
         } else {
-            passthru("aws s3 sync s3://$bucket/uploads/sites/$blogID $uploadsPath/uploads/sites --profile $profile");
+            passthru("aws s3 sync s3://$bucket/uploads/sites/$blogID $uploadsPath/uploads/sites/$blogID --profile $profile");
         }
     }
 
