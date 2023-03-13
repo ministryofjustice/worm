@@ -12,7 +12,7 @@ class DownloadCommand extends Command
      *
      * @var string
      */
-    protected $signature = 's3:download { bucket : s3 bucket name } { profile : AWS s3 profile name }';
+    protected $signature = 's3:download { bucket : s3 bucket name } { profile : AWS s3 profile name } {--blogID= : enter blog id for site}';
 
     /**
      * The description of the command.
@@ -30,6 +30,7 @@ class DownloadCommand extends Command
     {
         $bucket = $this->argument('bucket');
         $profile = $this->argument('profile');
+        $blogID = $this->option('blogID');
 
         $path = rtrim(shell_exec('pwd'));
 
@@ -43,7 +44,11 @@ class DownloadCommand extends Command
 
         $uploadsPath = $path . "/wordpress/wp-content";
 
-        passthru("aws s3 sync s3://$bucket $uploadsPath --profile $profile");
+        if ($blogID === null) {
+            passthru("aws s3 sync s3://$bucket $uploadsPath --profile $profile");
+        } else {
+            passthru("aws s3 sync s3://$bucket/uploads/sites/$blogID $uploadsPath/uploads/sites --profile $profile");
+        }
     }
 
     /*
