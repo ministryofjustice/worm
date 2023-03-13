@@ -12,14 +12,14 @@ class UploadCommand extends Command
      *
      * @var string
      */
-    protected $signature = 's3:upload { bucket : s3 bucket name } { profile : AWS s3 profile name }';
+    protected $signature = 's3:upload { bucket : s3 bucket name } { profile : AWS s3 profile name } {--blogID= : enter site blog id}';
 
     /**
      * The description of the command.
      *
      * @var string
      */
-    protected $description = 'Command description';
+    protected $description = 'Upload either a single site or a multisite\'s media assests.';
 
     /**
      * Execute the console command.
@@ -30,6 +30,7 @@ class UploadCommand extends Command
     {
         $bucket = $this->argument('bucket');
         $profile = $this->argument('profile');
+        $blogID = $this->option('blogID');
 
         $path = rtrim(shell_exec('pwd'));
 
@@ -43,7 +44,11 @@ class UploadCommand extends Command
 
         $uploadsPath = $path . "/wordpress/wp-content/uploads";
 
-        passthru("aws s3 sync $uploadsPath s3://$bucket/uploads --profile $profile");
+        if ($blogID === null) {
+            passthru("aws s3 sync $uploadsPath s3://$bucket/uploads --profile $profile");
+        } else {
+            passthru("aws s3 sync $uploadsPath/sites/$blogID s3://$bucket/uploads/sites/$blogID --profile $profile");
+        }
     }
 
     /**
