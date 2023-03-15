@@ -45,9 +45,9 @@ class UploadCommand extends Command
         $uploadsPath = $path . "/wordpress/wp-content/uploads";
 
         if ($blogID === null) {
-            passthru("aws s3 sync $uploadsPath s3://$bucket/uploads --profile $profile");
+            passthru("aws s3 sync $uploadsPath s3://$bucket/uploads --profile $profile --acl=public-read");
         } else {
-            passthru("aws s3 sync $uploadsPath/sites/$blogID s3://$bucket/uploads/sites/$blogID --profile $profile");
+            passthru("aws s3 sync $uploadsPath/sites/$blogID s3://$bucket/uploads/sites/$blogID --profile $profile --acl=public-read");
         }
     }
 
