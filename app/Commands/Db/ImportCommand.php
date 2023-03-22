@@ -73,6 +73,11 @@ class ImportCommand extends Command
         $oldURL = rtrim($this->ask('Old URL:'));
         $newURL = rtrim($this->ask('New URL:'));
 
+        $this->info('Get s3 bucket names to find and replace:');
+
+        $olds3Bucket = rtrim($this->ask('Old s3 bucket name:'));
+        $news3Bucket = rtrim($this->ask('New s3 bucket name:'));
+
         $urlsMatch = false;
 
         if ($oldURL === $newURL) {
@@ -108,6 +113,9 @@ class ImportCommand extends Command
         if ($urlsMatch != true) {
             passthru("$podExec wp search-replace $oldURL $newURL --url=$oldURL --network");
         }
+
+        # s3 bucket find and replace
+        passthru("$podExec wp search-replace $olds3Bucket $news3Bucket --url=$oldURL --network");
     }
 
     /**
