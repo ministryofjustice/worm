@@ -61,7 +61,7 @@ class ImportCommand extends Command
 
             # Match the remote blog id with the one entered
             if ($siteCheckRemote != $blogID) {
-                $this->info('The blogID you entered does not exist on the remote site. 
+                $this->info('The blogID you entered does not exist on the remote site.
                     Create the site first and then run the db import into it.');
                 return;
             };
@@ -101,9 +101,11 @@ class ImportCommand extends Command
         }
 
         # Copy SQL from local machine to container
+        $this->info('Copying .sql file from local into target container ...');
         passthru("kubectl cp $sqlFilePath $namespace/$podName:$sqlFile -c wordpress");
 
         # Import DB into RDS database
+        $this->info('Importing .sql database into RDS ...');
         passthru("$podExec wp db import $sqlFile");
 
         # Delete SQL file in container no longer needed
@@ -111,11 +113,13 @@ class ImportCommand extends Command
 
         # Perform string replace on imported DB
         if ($urlsMatch != true) {
-            passthru("$podExec wp search-replace $oldURL $newURL --url=$oldURL --network");
+            $this->info('Replacing database URLs to match target environment ...');
+            passthru("$podExec wp search-replace $oldURL $newURL --url=$oldURL --network --precise --skip-columns=guid --report-changed-only --recurse-objects");
         }
 
         # s3 bucket find and replace
-        passthru("$podExec wp search-replace $olds3Bucket $news3Bucket --url=$oldURL --network");
+        $this->info('Replace s3 bucket name with target CloudPlatform bucket name ... ');
+        passthru("$podExec wp search-replace $olds3Bucket $news3Bucket --url=$newURL --network --precise --skip-columns=guid --report-changed-only --recurse-objects");
     }
 
     /**
