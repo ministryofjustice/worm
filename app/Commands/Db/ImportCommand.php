@@ -147,10 +147,8 @@ class ImportCommand extends Command
 
             $this->info($domain);
 
-            passthru("$podExec wp search-replace --url=$domain --network --skip-columns=guid --report-changed-only https://$domain https://$namespace.apps.live.cloud-platform.service.justice.gov.uk/$sitePath");
-
+            passthru("$podExec wp search-replace --url=$domain --network --skip-columns=guid --report-changed-only https://$domain $domainPath");
             passthru("$podExec wp db query 'UPDATE wp_blogs SET domain=$domainPath WHERE wp_blogs.blog_id=$blogID'");
-
             passthru("$podExec wp db query 'UPDATE wp_blogs SET path=/$sitePath/ WHERE wp_blogs.blog_id=$blogID'");
         }
 
