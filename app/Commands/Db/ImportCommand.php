@@ -143,15 +143,15 @@ class ImportCommand extends Command
             $domain = $site['domain'];
             $sitePath = $site['path'];
             $blogID = $site['blogID'];
+            $domainPath = "https://$namespace.apps.live.cloud-platform.service.justice.gov.uk/$sitePath";
 
             $this->info($domain);
 
             passthru("$podExec wp search-replace --url=$domain --network --skip-columns=guid --report-changed-only https://$domain https://$namespace.apps.live.cloud-platform.service.justice.gov.uk/$sitePath");
 
-            $dbQueryDomain =
-            passthru("$podExec wp db query 'UPDATE wp_blogs SET domain="https://$namespace.apps.live.cloud-platform.service.justice.gov.uk/$sitePath" WHERE wp_blogs.blog_id=$blogID'");
+            passthru("$podExec wp db query 'UPDATE wp_blogs SET domain=$domainPath WHERE wp_blogs.blog_id=$blogID'");
 
-            passthru("$podExec wp db query UPDATE wp_blogs SET path=/$sitePath/ WHERE wp_blogs.blog_id=$blogID");
+            passthru("$podExec wp db query 'UPDATE wp_blogs SET path=/$sitePath/ WHERE wp_blogs.blog_id=$blogID'");
         }
 
         $this->info('Import script finished.');
