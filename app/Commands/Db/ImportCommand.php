@@ -120,6 +120,41 @@ class ImportCommand extends Command
         # s3 bucket find and replace
         $this->info('Replace s3 bucket name with target CloudPlatform bucket name ... ');
         passthru("$podExec wp search-replace $olds3Bucket $news3Bucket --url=$newURL --network --precise --skip-columns=guid --report-changed-only --recurse-objects");
+
+        $this->info('Perform find and replace on Prod domains to match dev ...');
+
+        $sites = array(
+            "mag" => array(
+                "blogID" => 3,
+                "domain" => "magistrates.judiciary.uk",
+                "path" => "magistrates",
+            ),
+
+            "pds" => array(
+                "blogID" => 12,
+                "domain" => "publicdefenderservice.org.uk",
+                "path" => "pds",
+            ),
+        );
+
+        $this->info('Runing search and replace on:');
+
+        foreach ($sites as $site) {
+            $domain = $site['domain'];
+            $sitePath = $site['path'];
+            $blogID = $site['blogID'];
+
+            $this->info($domain);
+
+            passthru("$podExec wp search-replace --url=$domain --network --skip-columns=guid --report-changed-only https://$domain https://$namespace.apps.live.cloud-platform.service.justice.gov.uk/$sitePath");
+
+            $dbQueryDomain =
+            passthru("$podExec wp db query 'UPDATE wp_blogs SET domain="https://$namespace.apps.live.cloud-platform.service.justice.gov.uk/$sitePath" WHERE wp_blogs.blog_id=$blogID'");
+
+            passthru("$podExec wp db query UPDATE wp_blogs SET path=/$sitePath/ WHERE wp_blogs.blog_id=$blogID");
+        }
+
+        $this->info('Import script finished.');
     }
 
     /**
