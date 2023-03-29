@@ -187,6 +187,10 @@ class ImportCommand extends Command
             passthru("$podExec wp search-replace --url=$domain --network --skip-columns=guid --report-changed-only 'https://$domain' '$domainPath'");
             passthru("$podExec wp db query 'UPDATE wp_blogs SET domain=\"$newDomainPath\" WHERE wp_blogs.blog_id=$siteID'");
             passthru("$podExec wp db query 'UPDATE wp_blogs SET path=\"/$sitePath/\" WHERE wp_blogs.blog_id=$siteID'");
+
+            // Security measure db copy from production make sure all sites have force login
+            // enabled in the dev environments
+            passthru("$podExec wp plugin activate wp-force-login --url=$domainPath");
         }
         $this->info('Import script finished.');
     }
