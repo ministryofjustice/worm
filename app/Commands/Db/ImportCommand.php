@@ -32,15 +32,20 @@ class ImportCommand extends Command
         $podName = rtrim(shell_exec('kubectl get pods -o=name | grep -m 1 wordpress | sed "s/^.\{4\}//"'));
         $podExec = "kubectl exec -it -c wordpress pod/$podName --";
         $namespace = shell_exec('kubectl config view --minify -o jsonpath="{..namespace}"');
-
         $blogID = $this->option('blogID');
-
         $sqlFilePath = $this->argument('path');
         $sqlFile = basename($this->argument('path'));
+
+        # Check we have an sql file before we even get going
+        if (!file_exists($sqlFilePath)) {
+            $this->info('SQL file not found.');
+            return;
+        }
 
         # Confirm that the person is in the right namespace
         $proceed = $this->ask("Your current namespace is $namespace. Do you wish to proceed?");
 
+        # Prompt to proceed
         if ($proceed != 'yes' && $proceed != 'y') {
             return;
         }
@@ -61,7 +66,7 @@ class ImportCommand extends Command
 
             # Match the remote blog id with the one entered
             if ($siteCheckRemote != $blogID) {
-                $this->info('The blogID you entered does not exist on the remote site. 
+                $this->info('The blogID you entered does not exist on the remote site.
                     Create the site first and then run the db import into it.');
                 return;
             };
@@ -85,11 +90,6 @@ class ImportCommand extends Command
             $urlsMatch = true;
         }
 
-        if (!file_exists($sqlFilePath)) {
-            $this->info('File not found.');
-            return;
-        }
-
         if (strlen($oldURL) == 0) {
             $this->info('Old URL incorrect or not found.');
             return;
@@ -101,21 +101,94 @@ class ImportCommand extends Command
         }
 
         # Copy SQL from local machine to container
-        passthru("kubectl cp $sqlFilePath $namespace/$podName:$sqlFile -c wordpress");
+        $this->info('Copying .sql file from local into target container ...');
+        passthru("kubectl cp $sqlFilePath $namespace/$podName:$sqlFile -c wordpress", $result_code);
 
         # Import DB into RDS database
+        $this->info('Importing .sql database into RDS ...');
         passthru("$podExec wp db import $sqlFile");
 
+        $this->info('Clean up and remove sql file from container ...');
         # Delete SQL file in container no longer needed
         passthru("$podExec rm $sqlFile");
 
         # Perform string replace on imported DB
         if ($urlsMatch != true) {
-            passthru("$podExec wp search-replace $oldURL $newURL --url=$oldURL --network");
+            $this->info('Replacing database URLs to match target environment ...');
+            passthru("$podExec wp search-replace $oldURL $newURL --url=$oldURL --network --precise --skip-columns=guid --report-changed-only --recurse-objects");
         }
 
         # s3 bucket find and replace
-        passthru("$podExec wp search-replace $olds3Bucket $news3Bucket --url=$oldURL --network");
+        $this->info('Replace s3 bucket name with target CloudPlatform bucket name ...');
+        passthru("$podExec wp search-replace $olds3Bucket $news3Bucket --url=$newURL --network --precise --skip-columns=guid --report-changed-only --recurse-objects");
+
+        # Check import is from a prod .sql to a development environment
+        # If yes, then run, if no, stop, nothing else to do.
+        $oldProdDomain = "jotwpublic.prod.wp.dsd.io";
+        $newProdDomain = "hale-platform-prod.apps.live.cloud-platform.service.justice.gov.uk";
+
+        if ($oldURL != $oldProdDomain && $oldURL != $newProdDomain) {
+                $this->info('You do not appear to be copying from production to another enviroment so domain rewrite not needed. Skiping.');
+                $this->info('Import script finished.');
+                return;
+        }
+
+        $this->info('Perform find and replace on Prod domains to match dev ...');
+
+        $sites = array(
+            "mag" => [
+                "blogID" => 3,
+                "domain" => "magistrates.judiciary.uk",
+                "path" => "magistrates",
+            ],
+
+            "ccr" => [
+                "blogID" => 5,
+                "domain" => "ccrc.gov.uk",
+                "path" => "ccrc",
+            ],
+
+            "vic" => [
+                "blogID" => 6,
+                "domain" => "victimscommissioner.org.uk",
+                "path" => "vc",
+            ],
+
+            "cym" => [
+                "blogID" => 11,
+                "domain" => "magistrates.judiciary.uk/cymraeg",
+                "path" => "cymraeg",
+            ],
+
+            "pds" => [
+                "blogID" => 12,
+                "domain" => "publicdefenderservice.org.uk",
+                "path" => "pds",
+            ],
+
+            "imb" => [
+                "blogID" => 13,
+                "domain" => "imb.org.uk",
+                "path" => "imb",
+            ],
+        );
+
+        $this->info('Runing search and replace on:');
+
+        foreach ($sites as $site) {
+            $domain = $site['domain'];
+            $sitePath = $site['path'];
+            $siteID = $site['blogID'];
+            $domainPath = "https://$namespace.apps.live.cloud-platform.service.justice.gov.uk/$sitePath";
+            $newDomainPath = "$namespace.apps.live.cloud-platform.service.justice.gov.uk";
+
+            $this->info($domain);
+
+            passthru("$podExec wp search-replace --url=$domain --network --skip-columns=guid --report-changed-only 'https://$domain' '$domainPath'");
+            passthru("$podExec wp db query 'UPDATE wp_blogs SET domain=\"$newDomainPath\" WHERE wp_blogs.blog_id=$siteID'");
+            passthru("$podExec wp db query 'UPDATE wp_blogs SET path=\"/$sitePath/\" WHERE wp_blogs.blog_id=$siteID'");
+        }
+        $this->info('Import script finished.');
     }
 
     /**
