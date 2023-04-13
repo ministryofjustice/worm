@@ -99,7 +99,7 @@ class ImportCommand extends Command
         passthru("docker cp $sqlFilePath $containerID:/var/www/html/$sqlFile");
 
         # Import DB into RDS database
-        $this->info('Importing .sql database into RDS ...');
+        $this->info('Importing .sql database into local mariadb ...');
         passthru("$containerExec wp db import $sqlFile");
 
         $this->info('Clean up and remove sql file from container ...');
