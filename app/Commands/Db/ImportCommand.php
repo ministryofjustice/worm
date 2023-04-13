@@ -43,6 +43,45 @@ class ImportCommand extends Command
         $containerID = rtrim(shell_exec('docker ps -aqf "name=^wordpress$"'));
         $containerExec = "docker exec -it wordpress";
 
+        # Version controlled record of our multisite domains matched to blog ID
+        $sites = array(
+            "mag" => [
+                "blogID" => 3,
+                "domain" => "magistrates.judiciary.uk",
+                "path" => "magistrates",
+            ],
+
+            "ccr" => [
+                "blogID" => 5,
+                "domain" => "ccrc.gov.uk",
+                "path" => "ccrc",
+            ],
+
+            "vic" => [
+                "blogID" => 6,
+                "domain" => "victimscommissioner.org.uk",
+                "path" => "vc",
+            ],
+
+            "cym" => [
+                "blogID" => 11,
+                "domain" => "magistrates.judiciary.uk/cymraeg",
+                "path" => "cymraeg",
+            ],
+
+            "pds" => [
+                "blogID" => 12,
+                "domain" => "publicdefenderservice.org.uk",
+                "path" => "pds",
+            ],
+
+            "imb" => [
+                "blogID" => 13,
+                "domain" => "imb.org.uk",
+                "path" => "imb",
+            ],
+        );
+
         # Check we have an sql file before we even get going
         if (!file_exists($sqlFilePath)) {
             $this->info('SQL file not found.');
@@ -50,12 +89,12 @@ class ImportCommand extends Command
         }
 
         if ($target === 'local') {
-            $this->importToLocalEnv($containerID, $containerExec, $blogID, $sqlFilePath, $sqlFile);
+            $this->importToLocalEnv($containerID, $containerExec, $blogID, $sqlFilePath, $sqlFile, $sites);
             return;
         }
 
         if ($target === 'prod' || $target === 'staging' || $target === 'dev' || $target === 'demo') {
-            $this->importToCloudPlatformEnv($podName, $podExec, $namespace, $blogID, $sqlFilePath, $sqlFile, $target);
+            $this->importToCloudPlatformEnv($podName, $podExec, $namespace, $blogID, $sqlFilePath, $sqlFile, $target, $sites);
             return;
         }
 
@@ -68,7 +107,7 @@ class ImportCommand extends Command
      *
      * @return mixed
      */
-    public function importToLocalEnv($containerID, $containerExec, $blogID, $sqlFilePath, $sqlFile)
+    public function importToLocalEnv($containerID, $containerExec, $blogID, $sqlFilePath, $sqlFile, $sites)
     {
         # Remove once we add in support for single site import
         if ($blogID != null) {
@@ -109,6 +148,31 @@ class ImportCommand extends Command
         # Perform string replace on imported DB
             $this->info('Replacing database URLs to match target environment ...');
         passthru("$containerExec wp search-replace $oldURL $newURL --url=$oldURL --network --precise --skip-columns=guid --report-changed-only --recurse-objects");
+
+        # Continue further URL rewriting if we are going from prod to all other
+        # environments that don't use domains
+        $this->info('Perform find and replace on domains to convert to WP paths ...');
+
+        $this->info('Runing search and replace on:');
+
+        foreach ($sites as $site) {
+            $domain = $site['domain'];
+            $sitePath = $site['path'];
+            $siteID = $site['blogID'];
+            $domainPath = "https://hale.docker/$sitePath";
+            $newDomainPath = "hale.docker";
+
+            $this->info($domain);
+
+            passthru("$containerExec wp search-replace --url=$domain --network --skip-columns=guid --report-changed-only 'https://$domain' '$domainPath'");
+            passthru("$containerExec wp db query 'UPDATE wp_blogs SET domain=\"$newDomainPath\" WHERE wp_blogs.blog_id=$siteID'");
+            passthru("$containerExec wp db query 'UPDATE wp_blogs SET path=\"/$sitePath/\" WHERE wp_blogs.blog_id=$siteID'");
+
+            // Disable security measure from db as in local environment
+            // enabled in the dev environments
+            passthru("$containerExec wp plugin deactivate wp-force-login --url=$domainPath");
+        }
+        $this->info('Import script finished.');
     }
 
     /**
@@ -116,7 +180,7 @@ class ImportCommand extends Command
      *
      * @return mixed
      */
-    public function importToCloudPlatformEnv($podName, $podExec, $namespace, $blogID, $sqlFilePath, $sqlFile, $target)
+    public function importToCloudPlatformEnv($podName, $podExec, $namespace, $blogID, $sqlFilePath, $sqlFile, $target, $sites)
     {
         # Confirm that the person is in the right namespace
         $proceed = $this->ask("Your current namespace is $namespace. Do you wish to proceed?");
@@ -209,44 +273,6 @@ class ImportCommand extends Command
         # Continue further URL rewriting if we are going from prod to all other
         # environments that don't use domains
         $this->info('Perform find and replace on domains to convert to WP paths ...');
-
-        $sites = array(
-        "mag" => [
-        "blogID" => 3,
-        "domain" => "magistrates.judiciary.uk",
-        "path" => "magistrates",
-        ],
-
-        "ccr" => [
-        "blogID" => 5,
-        "domain" => "ccrc.gov.uk",
-        "path" => "ccrc",
-        ],
-
-        "vic" => [
-        "blogID" => 6,
-        "domain" => "victimscommissioner.org.uk",
-        "path" => "vc",
-        ],
-
-        "cym" => [
-        "blogID" => 11,
-        "domain" => "magistrates.judiciary.uk/cymraeg",
-        "path" => "cymraeg",
-        ],
-
-        "pds" => [
-        "blogID" => 12,
-        "domain" => "publicdefenderservice.org.uk",
-        "path" => "pds",
-        ],
-
-        "imb" => [
-        "blogID" => 13,
-        "domain" => "imb.org.uk",
-        "path" => "imb",
-        ],
-        );
 
         $this->info('Runing search and replace on:');
 
