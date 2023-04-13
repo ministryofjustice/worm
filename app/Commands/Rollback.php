@@ -41,8 +41,7 @@ class Rollback extends Command
             return;
         }
 
-       passthru("helm rollback wordpress $revisionNum");
-
+        passthru("helm rollback wordpress $revisionNum");
     }
 
     /**
