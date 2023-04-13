@@ -40,8 +40,10 @@ also need to have `AWS`, `kubectl`, `cloud-platform` and `php` installed on your
 * Download database or media assets from any environment.
 * Upload database or media assets from any environment.
 * Check WordPress sites installed on multisite and their blog ids.
+* Rollback a wordpress environment to a previous revision
 * Display wpsecrets `worm status --secrets`
 * Display list of sites on multisite cluster `worm listSites`
+* Display list of releases on multisite cluster `worm listReleases`
 * Setup AWS Profiles for s3, rds and ecr list for current namespace `worm setup:createProfiles`
 
 ## License

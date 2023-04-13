@@ -19,7 +19,7 @@ class Rollback extends Command
      *
      * @var string
      */
-    protected $description = 'Rollbacks wordpress container to a revision. Default is to previous revision';
+    protected $description = 'Rollbacks wordpress environment to a revision. Default is to previous revision';
 
     /**
      * Execute the console command.
