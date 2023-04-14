@@ -12,7 +12,11 @@ class ImportCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'db:import { path : path of sql file to import } {--blogID= : blog id of remote site db you want to replace. }';
+
+    protected $signature = "db:import
+        { target : Target environment you are importing DB to, ie prod, staging, dev, demo, local. }
+        { path : Path of SQL file to import. }
+        {--blogID= : Blog id of remote site db you want to replace. }";
 
     /**
      * The description of the command.
@@ -33,8 +37,50 @@ class ImportCommand extends Command
         $podExec = "kubectl exec -it -c wordpress pod/$podName --";
         $namespace = shell_exec('kubectl config view --minify -o jsonpath="{..namespace}"');
         $blogID = $this->option('blogID');
+        $target = $this->argument('target');
         $sqlFilePath = $this->argument('path');
-        $sqlFile = basename($this->argument('path'));
+        $sqlFile = basename($sqlFilePath);
+        $containerID = rtrim(shell_exec('docker ps -aqf "name=^wordpress$"'));
+        $containerExec = "docker exec -it wordpress";
+
+        # Version controlled record of our multisite domains matched to blog ID
+        $sites = array(
+            "mag" => [
+                "blogID" => 3,
+                "domain" => "magistrates.judiciary.uk",
+                "path" => "magistrates",
+            ],
+
+            "ccr" => [
+                "blogID" => 5,
+                "domain" => "ccrc.gov.uk",
+                "path" => "ccrc",
+            ],
+
+            "vic" => [
+                "blogID" => 6,
+                "domain" => "victimscommissioner.org.uk",
+                "path" => "vc",
+            ],
+
+            "cym" => [
+                "blogID" => 11,
+                "domain" => "magistrates.judiciary.uk/cymraeg",
+                "path" => "cymraeg",
+            ],
+
+            "pds" => [
+                "blogID" => 12,
+                "domain" => "publicdefenderservice.org.uk",
+                "path" => "pds",
+            ],
+
+            "imb" => [
+                "blogID" => 13,
+                "domain" => "imb.org.uk",
+                "path" => "imb",
+            ],
+        );
 
         # Check we have an sql file before we even get going
         if (!file_exists($sqlFilePath)) {
@@ -42,6 +88,100 @@ class ImportCommand extends Command
             return;
         }
 
+        if ($target === 'local') {
+            $this->importToLocalEnv($containerID, $containerExec, $blogID, $sqlFilePath, $sqlFile, $sites);
+            return;
+        }
+
+        if ($target === 'prod' || $target === 'staging' || $target === 'dev' || $target === 'demo') {
+            $this->importToCloudPlatformEnv($podName, $podExec, $namespace, $blogID, $sqlFilePath, $sqlFile, $target, $sites);
+            return;
+        }
+
+        $this->info('You need to choose either, prod, staging, dev, demo or local as the 3 argument.');
+        return;
+    }
+
+    /**
+     * Import DB to local Docker instance of the multisite
+     *
+     * @return mixed
+     */
+    public function importToLocalEnv($containerID, $containerExec, $blogID, $sqlFilePath, $sqlFile, $sites)
+    {
+        # Remove once we add in support for single site import
+        if ($blogID != null) {
+            $this->info('WORM currently does not support importing single site to local db.');
+            return;
+        }
+
+        $confirmInfo = 'You are currently targeting the local environment.
+            Make sure you have the site running locally before continuing.
+            Do you wish to proceed? [y/n]';
+
+        # Confirm that the person is in the right namespace
+        $proceed = $this->ask($confirmInfo);
+
+        # Prompt to proceed
+        if ($proceed != 'yes' && $proceed != 'y') {
+            return;
+        }
+
+        $this->info('What is the URL of the database you are importing? ie, jotwpublic.prod.wp.dsd.io');
+
+        # Get URLs to run WP find and replace on database
+        $oldURL = rtrim($this->ask('Old URL:'));
+        $newURL = 'hale.docker';
+
+        # Copy SQL from local machine to container
+        $this->info('Copying .sql file from local into target container ...');
+        passthru("docker cp $sqlFilePath $containerID:/var/www/html/$sqlFile");
+
+        # Import DB into RDS database
+        $this->info('Importing .sql database into local mariadb ...');
+        passthru("$containerExec wp db import $sqlFile");
+
+        $this->info('Clean up and remove sql file from container ...');
+        # Delete SQL file in container no longer needed
+        passthru("$containerExec rm $sqlFile");
+
+        # Perform string replace on imported DB
+            $this->info('Replacing database URLs to match target environment ...');
+        passthru("$containerExec wp search-replace $oldURL $newURL --url=$oldURL --network --precise --skip-columns=guid --report-changed-only --recurse-objects");
+
+        # Continue further URL rewriting if we are going from prod to all other
+        # environments that don't use domains
+        $this->info('Perform find and replace on domains to convert to WP paths ...');
+
+        $this->info('Runing search and replace on:');
+
+        foreach ($sites as $site) {
+            $domain = $site['domain'];
+            $sitePath = $site['path'];
+            $siteID = $site['blogID'];
+            $domainPath = "https://hale.docker/$sitePath";
+            $newDomainPath = "hale.docker";
+
+            $this->info($domain);
+
+            passthru("$containerExec wp search-replace --url=$domain --network --skip-columns=guid --report-changed-only 'https://$domain' '$domainPath'");
+            passthru("$containerExec wp db query 'UPDATE wp_blogs SET domain=\"$newDomainPath\" WHERE wp_blogs.blog_id=$siteID'");
+            passthru("$containerExec wp db query 'UPDATE wp_blogs SET path=\"/$sitePath/\" WHERE wp_blogs.blog_id=$siteID'");
+
+            // Disable security measure from db as in local environment
+            // enabled in the dev environments
+            passthru("$containerExec wp plugin deactivate wp-force-login --url=$domainPath");
+        }
+        $this->info('Import script finished.');
+    }
+
+    /**
+     * Import DB to an environment in CloudPlatform
+     *
+     * @return mixed
+     */
+    public function importToCloudPlatformEnv($podName, $podExec, $namespace, $blogID, $sqlFilePath, $sqlFile, $target, $sites)
+    {
         # Confirm that the person is in the right namespace
         $proceed = $this->ask("Your current namespace is $namespace. Do you wish to proceed?");
 
@@ -102,7 +242,7 @@ class ImportCommand extends Command
 
         # Copy SQL from local machine to container
         $this->info('Copying .sql file from local into target container ...');
-        passthru("kubectl cp $sqlFilePath $namespace/$podName:$sqlFile -c wordpress", $result_code);
+        passthru("kubectl cp $sqlFilePath $namespace/$podName:$sqlFile -c wordpress");
 
         # Import DB into RDS database
         $this->info('Importing .sql database into RDS ...');
@@ -122,56 +262,17 @@ class ImportCommand extends Command
         $this->info('Replace s3 bucket name with target CloudPlatform bucket name ...');
         passthru("$podExec wp search-replace $olds3Bucket $news3Bucket --url=$newURL --network --precise --skip-columns=guid --report-changed-only --recurse-objects");
 
-        # Check import is from a prod .sql to a development environment
-        # If yes, then run, if no, stop, nothing else to do.
-        $oldProdDomain = "jotwpublic.prod.wp.dsd.io";
-        $newProdDomain = "hale-platform-prod.apps.live.cloud-platform.service.justice.gov.uk";
+        # We may want to skip rewriting the domains
+        $proceed = $this->ask('You are importing to production, do you want to keep the domains intact and skip rewriting them? [y/n]');
 
-        if ($oldURL != $oldProdDomain && $oldURL != $newProdDomain) {
-                $this->info('You do not appear to be copying from production to another enviroment so domain rewrite not needed. Skiping.');
-                $this->info('Import script finished.');
-                return;
+        if ($proceed == 'yes' || $proceed == 'y') {
+            $this->info('DB import complete.');
+            return;
         }
 
-        $this->info('Perform find and replace on Prod domains to match dev ...');
-
-        $sites = array(
-            "mag" => [
-                "blogID" => 3,
-                "domain" => "magistrates.judiciary.uk",
-                "path" => "magistrates",
-            ],
-
-            "ccr" => [
-                "blogID" => 5,
-                "domain" => "ccrc.gov.uk",
-                "path" => "ccrc",
-            ],
-
-            "vic" => [
-                "blogID" => 6,
-                "domain" => "victimscommissioner.org.uk",
-                "path" => "vc",
-            ],
-
-            "cym" => [
-                "blogID" => 11,
-                "domain" => "magistrates.judiciary.uk/cymraeg",
-                "path" => "cymraeg",
-            ],
-
-            "pds" => [
-                "blogID" => 12,
-                "domain" => "publicdefenderservice.org.uk",
-                "path" => "pds",
-            ],
-
-            "imb" => [
-                "blogID" => 13,
-                "domain" => "imb.org.uk",
-                "path" => "imb",
-            ],
-        );
+        # Continue further URL rewriting if we are going from prod to all other
+        # environments that don't use domains
+        $this->info('Perform find and replace on domains to convert to WP paths ...');
 
         $this->info('Runing search and replace on:');
 
@@ -194,7 +295,6 @@ class ImportCommand extends Command
         }
         $this->info('Import script finished.');
     }
-
     /**
      * Define the command's schedule.
      *
