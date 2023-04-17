@@ -13,6 +13,18 @@ It is based off the [Laravel-Zero](https://laravel-zero.com/) framework.
 
 WORM targets the following environments, `Local`, `Demo`, `Dev`, `Staging` & `Prod`.
 
+## Features
+
+* Download database or media assets from any environment.
+* Upload database or media assets from any environment.
+* Check WordPress sites installed on multisite and their blog ids.
+* Display wpsecrets `worm status --secrets`
+* Display list of sites on multisite cluster `worm listSites`
+* Setup AWS Profiles for s3, rds and ecr list for current namespace `worm setup:createProfiles`
+* Migrate - `worm migrate <source> <target>` will move the database and s3
+  assets from one environment to another. Todo: currently only works with
+  staging, dev, demo migrating to local.
+
 ## Required
 
 * [AWS
@@ -26,28 +38,43 @@ WORM targets the following environments, `Local`, `Demo`, `Dev`, `Staging` & `Pr
 
 ## Installation
 
+Step 1: Install WORM via Composer
 Download and run `composer install` in this repository's root directory. This
-will create a vendor folder. Then run `make install` which compiles the app
+will create a vendor folder.
+
+Step 2: Install WORM globally on your machine
+Then run `make install` which compiles the app
 into a binary and system links it so that it is available globally on your
 machine. You will be prompted to enter your Mac OS password so the system links can be established. You will
 also need to have `AWS`, `kubectl`, `cloud-platform` and `php` installed on your command line.
 
+Step 3: Setup your AWS profiles
 Once WORM is installed the first thing to setup is your AWS profiles. In each
 kubernetes namespaces run `worm create:profiles`. This creates a standard and
 unique set of aws profiles in your computer's root directory in the `.aws`
 folder.
 
-## Features
+## Quick guide
 
-* Download database or media assets from any environment.
-* Upload database or media assets from any environment.
-* Check WordPress sites installed on multisite and their blog ids.
-* Display wpsecrets `worm status --secrets`
-* Display list of sites on multisite cluster `worm listSites`
-* Setup AWS Profiles for s3, rds and ecr list for current namespace `worm setup:createProfiles`
-* Migrate - `worm migrate <source> <target>` will move the database and s3
-  assets from one environment to another. Todo: currently only works with
-  staging, dev, demo migrating to local.
+Make sure you are in the correct namespace ie `kubens hale-platform-dev`.
+
+### Database download
+
+`worm db:export` or a specific site db `worm db:export --blogID[=BLOGID]`
+
+### Database upload
+
+`worm db:import <target env> <path of sql>` or upload to specific site add --blogID[=BLOGID]
+
+### Download s3 media locally
+
+Make sure you are in the hale-platform repo root on your local machine.
+
+`worm s3:download <s3 bucket> <aws profile name>`
+
+### Upload s3 media to cloud environment
+
+`worm s3:upload <bucket> <profile>`
 
 ## License
 
