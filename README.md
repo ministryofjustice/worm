@@ -38,16 +38,16 @@ WORM targets the following environments, `Local`, `Demo`, `Dev`, `Staging` & `Pr
 
 ## Installation
 
-Download the WORM repository to your local machine.
-SSH - `git clone git@github.com:ministryofjustice/worm.git` or
-GH - `gh repo clone ministryofjustice/worm`
+Step 1: Download the WORM repository to your local machine, either
+via SSH - `git clone git@github.com:ministryofjustice/worm.git` or
+GH - `gh repo clone ministryofjustice/worm`.
 
-`cd` into the repository's root directory and run the following steps:
+Step 2: `cd` into this repository's root directory on your local machine.
 
-Step 1: Install WORM via Composer
+Step 3: Install WORM via Composer
 Run `composer install`. This will create the required vendor folder.
 
-Step 2: Install WORM globally on your machine
+Step 4: Install WORM globally on your machine
 Run `make install` which compiles the app into a binary and
 system links it so that it is available globally on your machine. You will be
 prompted to enter your Mac OS password so the system links can be established.
@@ -57,7 +57,7 @@ You will also need to have `AWS`, `kubectl`, `cloud-platform` and
 If successfull, you should be able to run `worm` in your terminal window and it
 load the worm command options.
 
-Step 3: Setup your AWS profiles
+Step 5: Setup your AWS profiles
 Run `worm create:profiles` in each namespace. This creates a standard and
 unique set of aws profiles in your computer's root directory in the `.aws`
 folder.
