@@ -46,16 +46,10 @@ class MigrateCommand extends Command
             return true;
         });
 
-        # Copy database from container to local machine
-        #$this->task("Copy $source database from container to local machine", function () use ($source, $podName, $sqlFile) {
-         #   passthru("kubectl cp hale-platform-$source/$podName:$sqlFile $sqlFile -c wordpress");
-         #   return true;
-        #});
-
         $containerID = rtrim(shell_exec('docker ps -aqf "name=^wordpress$"'));
         $containerExec = "docker exec -it wordpress";
 
-               # Get URLs to run WP find and replace on database
+        # Get URLs to run WP find and replace on database
         $oldURL = "hale-platform-$source.apps.live.cloud-platform.service.justice.gov.uk";
         $newURL = 'hale.docker';
 
