@@ -48,6 +48,9 @@ into a binary and system links it so that it is available globally on your
 machine. You will be prompted to enter your Mac OS password so the system links can be established. You will
 also need to have `AWS`, `kubectl`, `cloud-platform` and `php` installed on your command line.
 
+If successfull, you should be able to run `worm` in your terminal window and it
+load the worm command options.
+
 Step 3: Setup your AWS profiles
 Once WORM is installed the first thing to setup is your AWS profiles. In each
 kubernetes namespaces run `worm create:profiles`. This creates a standard and
@@ -56,7 +59,8 @@ folder.
 
 ## Quick guide
 
-Make sure you are in the correct namespace ie `kubens hale-platform-dev`.
+Make sure you are in the hale-platform repo root on your local machine and
+you are in the correct namespace ie `kubens hale-platform-dev`.
 
 ### Database download
 
@@ -67,8 +71,6 @@ Make sure you are in the correct namespace ie `kubens hale-platform-dev`.
 `worm db:import <target env> <path of sql>` or upload to specific site add --blogID[=BLOGID]
 
 ### Download s3 media locally
-
-Make sure you are in the hale-platform repo root on your local machine.
 
 `worm s3:download <s3 bucket> <aws profile name>`
 
