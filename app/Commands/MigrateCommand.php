@@ -33,7 +33,7 @@ class MigrateCommand extends Command
 
         $podName = rtrim(shell_exec("kubectl get pods -n hale-platform-$source -o=name | grep -m 1 wordpress | sed 's/^.\{4\}//'"));
         $podExec = "kubectl exec -it -n hale-platform-$source -c wordpress pod/$podName --";
-        $sqlFile = 'hale-platform-'. $source . '-' . date("Y-m-d-H-i-s") . '.sql';
+        $sqlFile = 'hale-platform-' . $source . '-' . date("Y-m-d-H-i-s") . '.sql';
 
         # Export DB from RDS to container
         $this->task("Export $source database from RDS", function () use ($podExec, $sqlFile) {
