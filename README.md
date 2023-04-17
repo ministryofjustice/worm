@@ -42,25 +42,28 @@ Step 1: Download the WORM repository to your local machine, either
 via SSH - `git clone git@github.com:ministryofjustice/worm.git` or
 GH - `gh repo clone ministryofjustice/worm`.
 
-Step 2: `cd` into this repository's root directory on your local machine.
+Step 2: `cd` into this repository's root directory on your local machine and
+run the following commands.
 
-Step 3: Install WORM via Composer
-Run `composer install`. This will create the required vendor folder.
+Step 3: Run `composer install`. This will install WORM and
+create the required vendor folder.
 
-Step 4: Install WORM globally on your machine
-Run `make install` which compiles the app into a binary and
-system links it so that it is available globally on your machine. You will be
+Step 4: Run `make install`. This will install WORM globally on your machine.
+It will compile the WORM app into a binary and system link it so that it
+is available in any directory you want to run `worm`. You will be
 prompted to enter your Mac OS password so the system links can be established.
 You will also need to have `AWS`, `kubectl`, `cloud-platform` and
 `php` installed on your command line.
 
-If successfull, you should be able to run `worm` in your terminal window and it
-load the worm command options.
+If successfull, you should be able to run `worm` in your terminal window and
+see it load the worm command options.
 
-Step 5: Setup your AWS profiles
-Run `worm create:profiles` in each namespace. This creates a standard and
+Step 5: Run `worm create:profiles`. This creates a standard and
 unique set of aws profiles in your computer's root directory in the `.aws`
-folder.
+folder. Make sure to run this in each kubernetes namespace. To change namespace
+you need to be authenticated to the CloudPlatform already and have the
+program `kubens` installed. Then you can run `kubens <namespace>` to swap
+around to your desired namespace.
 
 ## Quick guide
 
