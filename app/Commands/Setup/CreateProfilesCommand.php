@@ -12,7 +12,7 @@ class CreateProfilesCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'setup:createProfiles';
+    protected $signature = 'setup:profile';
 
     /**
      * The description of the command.

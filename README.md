@@ -26,14 +26,16 @@ WORM targets the following environments, `Local`, `Demo`, `Dev`, `Staging` & `Pr
 
 ## Installation
 
-
 Download and run `composer install` in this repository's root directory. This
 will create a vendor folder. Then run `make install` which compiles the app
 into a binary and system links it so that it is available globally on your
-machine. 
-
-You will be prompted to enter your Mac OS password so the system links can be established. You will
+machine. You will be prompted to enter your Mac OS password so the system links can be established. You will
 also need to have `AWS`, `kubectl`, `cloud-platform` and `php` installed on your command line.
+
+Once WORM is installed the first thing to setup is your AWS profiles. In each
+kubernetes namespaces run `worm create:profiles`. This creates a standard and
+unique set of aws profiles in your computer's root directory in the `.aws`
+folder.
 
 ## Features
 
@@ -43,6 +45,9 @@ also need to have `AWS`, `kubectl`, `cloud-platform` and `php` installed on your
 * Display wpsecrets `worm status --secrets`
 * Display list of sites on multisite cluster `worm listSites`
 * Setup AWS Profiles for s3, rds and ecr list for current namespace `worm setup:createProfiles`
+* Migrate - `worm migrate <source> <target>` will move the database and s3
+  assets from one environment to another. Todo: currently only works with
+  staging, dev, demo migrating to local.
 
 ## License
 
