@@ -13,6 +13,18 @@ It is based off the [Laravel-Zero](https://laravel-zero.com/) framework.
 
 WORM targets the following environments, `Local`, `Demo`, `Dev`, `Staging` & `Prod`.
 
+## Features
+
+* Download database or media assets from any environment.
+* Upload database or media assets from any environment.
+* Check WordPress sites installed on multisite and their blog ids.
+* Display wpsecrets `worm status --secrets`
+* Display list of sites on multisite cluster `worm listSites`
+* Setup AWS Profiles for s3, rds and ecr list for current namespace `worm setup:createProfiles`
+* Migrate - `worm migrate <source> <target>` will move the database and s3
+  assets from one environment to another. Todo: currently only works with
+  staging, dev, demo migrating to local.
+
 ## Required
 
 * [AWS
@@ -26,23 +38,53 @@ WORM targets the following environments, `Local`, `Demo`, `Dev`, `Staging` & `Pr
 
 ## Installation
 
+Step 1: Download the WORM repository to your local machine, either
+via SSH - `git clone git@github.com:ministryofjustice/worm.git` or
+GH - `gh repo clone ministryofjustice/worm`.
 
-Download and run `composer install` in this repository's root directory. This
-will create a vendor folder. Then run `make install` which compiles the app
-into a binary and system links it so that it is available globally on your
-machine. 
+Step 2: `cd` into this repository's root directory on your local machine and
+run the following commands.
 
-You will be prompted to enter your Mac OS password so the system links can be established. You will
-also need to have `AWS`, `kubectl`, `cloud-platform` and `php` installed on your command line.
+Step 3: Run `composer install`. This will install WORM and
+create the required vendor folder.
 
-## Features
+Step 4: Run `make install`. This will install WORM globally on your machine.
+It will compile the WORM app into a binary and system link it so that it
+is available in any directory you want to run `worm`. You will be
+prompted to enter your Mac OS password so the system links can be established.
+You will also need to have `AWS`, `kubectl`, `cloud-platform` and
+`php` installed on your command line.
 
-* Download database or media assets from any environment.
-* Upload database or media assets from any environment.
-* Check WordPress sites installed on multisite and their blog ids.
-* Display wpsecrets `worm status --secrets`
-* Display list of sites on multisite cluster `worm listSites`
-* Setup AWS Profiles for s3, rds and ecr list for current namespace `worm setup:createProfiles`
+If successfull, you should be able to run `worm` in your terminal window and
+see it load the worm command options.
+
+Step 5: Run `worm create:profiles`. This creates a standard and
+unique set of aws profiles in your computer's root directory in the `.aws`
+folder. Make sure to run this in each kubernetes namespace. To change namespace
+you need to be authenticated to the CloudPlatform already and have the
+program `kubens` installed. Then you can run `kubens <namespace>` to swap
+around to your desired namespace.
+
+## Quick guide
+
+Make sure you are in the hale-platform repo root on your local machine and
+you are in the correct namespace ie `kubens hale-platform-dev`.
+
+### Database download
+
+`worm db:export` or a specific site db `worm db:export --blogID[=BLOGID]`
+
+### Database upload
+
+`worm db:import <target env> <path of sql>` or upload to specific site add --blogID[=BLOGID]
+
+### Download s3 media locally
+
+`worm s3:download <s3 bucket> <aws profile name>`
+
+### Upload s3 media to cloud environment
+
+`worm s3:upload <bucket> <profile>`
 
 ## License
 
