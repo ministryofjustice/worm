@@ -45,12 +45,7 @@ class MigrateCommand extends Command
             return $resultCode;
         });
 
-        $this->task("Copying database from remote container to local machine.", function () use ($namespace, $podName, $sqlFile) {
-            passthru("kubectl cp -n $namespace -c wordpress $podName:$sqlFile $sqlFile", $resultCode);
-
-            $resultCode = ($resultCode === 0) ? true : false;
-            return $resultCode;
-        });
+        passthru("kubectl cp -n $namespace -c wordpress $podName:$sqlFile $sqlFile");
 
         $containerID = rtrim(shell_exec('docker ps -aqf "name=^wordpress$"'));
         $containerExec = "docker exec -it wordpress";
