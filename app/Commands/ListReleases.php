@@ -19,7 +19,7 @@ class ListReleases extends Command
      *
      * @var string
      */
-    protected $description = 'Displays release history of the wordpress container';
+    protected $description = 'Displays deploy history';
 
     /**
      * Execute the console command.
