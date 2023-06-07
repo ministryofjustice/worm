@@ -80,7 +80,7 @@ class ImportCommand extends Command
                 "domain" => "imb.org.uk",
                 "path" => "imb",
             ],
-            
+
             "icrir" => [
                 "blogID" => 16,
                 "domain" => "icrir.independent-inquiry.uk",
