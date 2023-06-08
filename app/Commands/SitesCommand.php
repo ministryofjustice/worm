@@ -5,21 +5,21 @@ namespace App\Commands;
 use Illuminate\Console\Scheduling\Schedule;
 use LaravelZero\Framework\Commands\Command;
 
-class ListReleases extends Command
+class SitesCommand extends Command
 {
     /**
      * The signature of the command.
      *
      * @var string
      */
-    protected $signature = 'listReleases';
+    protected $signature = 'sites';
 
     /**
      * The description of the command.
      *
      * @var string
      */
-    protected $description = 'Displays release history of the wordpress container';
+    protected $description = 'List all sites in the multisite installation.';
 
     /**
      * Execute the console command.
@@ -28,11 +28,11 @@ class ListReleases extends Command
      */
     public function handle()
     {
-        $namespace = shell_exec('kubectl config view --minify -o jsonpath="{..namespace}"');
-        $this->info("Your current namespace: " . $namespace);
+         # Get current pod name to shell into and run wpcli
+         $podName = rtrim(shell_exec('kubectl get pods -o=name | grep -m 1 wordpress | sed "s/^.\{4\}//"'));
 
-        # Copy database from container to local machine
-        passthru("helm history wordpress");
+         # Export DB from RDS to container
+         passthru("kubectl exec -it -c wordpress pod/$podName -- wp site list --fields=blog_id,url");
     }
 
     /**
