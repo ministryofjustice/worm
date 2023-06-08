@@ -5,7 +5,7 @@ namespace App\Commands;
 use Illuminate\Console\Scheduling\Schedule;
 use LaravelZero\Framework\Commands\Command;
 
-class Rollback extends Command
+class RollbackCommand extends Command
 {
     /**
      * The signature of the command.
