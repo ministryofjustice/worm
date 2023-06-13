@@ -151,13 +151,9 @@ public function handle()
 
     $container = Container::getInstance();
     $this->sites = $container->get('sites');
-    
-    // $this->secretName = $this->getSecretName($env);
-    // $this->secrets = $this->decodeSecrets($env);
-    // $this->json_secrets = json_decode($this->secrets);
-    // $this->bucket = $this->json_secrets->data->S3_UPLOADS_BUCKET;
+    $this->profile = "$this->sourceNamespace-s3";
+
     // $this->uploadsPath = $this->path . "/wordpress/wp-content";
-    // $this->profile = "$this->sourceNamespace-s3";
     // $this->oldURL = "$this->sourceNamespace.apps.live.cloud-platform.service.justice.gov.uk";
     // $this->newURL = 'hale.docker';
 
@@ -190,14 +186,14 @@ public function handle()
             $this->sqlFile,
             $this->target,
             $this->sites,
-            $this->path
+            $this->path,
+            $this->profile
         );
         return;
     }
 
     $this->info('Target environment not found.');
 }
-
 
     /**
      * Migrates the data from the specified source to the local environment.
@@ -314,6 +310,7 @@ public function handle()
      * @param string $target The target environment.
      * @param array $sites An array of site configurations.
      * @param string $path The path to the SQL file.
+     * @param string $profile Your local machines AWS profile config name ie hale-platform-dev-s3.
      * @return void
      */
     public function migrateBetweenCloudPlatformEnv(
@@ -321,7 +318,8 @@ public function handle()
         $sqlFile,
         $target,
         $sites,
-        $path
+        $path,
+        $profile
     ) {
         // Step 1: Export SQL from RDS to pod container
         $this->exportRdsToContainer($source, $sqlFile) || exit(1);
@@ -352,20 +350,23 @@ public function handle()
             $this->productionDatabaseDomainRewrite($target, $sites) || exit(1);
         }
 
-        // Step 10: Migration completed successfully
-        $this->info("Success. $source has been migrated to $target.");
+        // Step 10: Update s3 bucket media assets, docs, images etc with the target environment 
+        $this->syncS3BucketWithTarget($source, $target);
+
+        // Migration completed successfully
+        $this->info("Success. " . ucfirst($source) . " has been migrated to " . ucfirst($target) . ".");
     }
 
 
     /**
      * Get the pod name for the specified namespace.
      *
-     * @param string $namespace The namespace.
+     * @param string $envName The namespace to get the pod name from.
      * @return string|null The pod name or null if not found.
      */
-    private function getPodName($target)
+    private function getPodName($envName)
     {
-        $command = "kubectl get pods -n hale-platform-$target -o=name | grep -m 1 wordpress | sed 's/^.\{4\}//'";
+        $command = "kubectl get pods -n hale-platform-$envName -o=name | grep -m 1 wordpress | sed 's/^.\{4\}//'";
         $podName = rtrim(shell_exec($command));
 
         return $podName ?: null;
@@ -374,8 +375,7 @@ public function handle()
     /**
      * Copy file from pod to local machine.
      *
-     * @param string $sourceNamespace The sourceNamespace.
-     * @param string $podName The pod name.
+     * @param string $envName The namespace.
      * @param string $sqlFile The SQL file name.
      * @return bool True if the copy is successful; otherwise, false.
      */
@@ -385,7 +385,7 @@ public function handle()
 
         $command = "kubectl cp --retries=10 -n hale-platform-$envName -c wordpress $podName:$sqlFile $sqlFile";
         passthru($command, $resultCode);
-        
+
         if ($resultCode === 0) {
             return true;
         } else {
@@ -393,6 +393,7 @@ public function handle()
             exit($resultCode);
         }
     }
+
 
     /**
      * Copy the .sql file from local machine to the target container.
@@ -483,38 +484,6 @@ public function handle()
         $podName = $this->getPodName($envName);
 
         return "kubectl exec -it -n hale-platform-$envName -c wordpress pod/$podName --";
-    }
-
-    /**
-     * Get the secret name.
-     *
-     * @param string $sourceNamespace The source namespace.
-     * @param string $podName The pod name.
-     * @return string The secret name.
-     */
-    private function getSecretName($envName)
-    {
-        $podName = $this->getPodName($envName);
-
-        $command = "kubectl describe -n hale-platform-$envName pods/$podName | grep -o 'wpsecrets-[[:digit:]]*'";
-        $output = shell_exec($command);
-        return rtrim($output);
-    }
-
-    /**
-     * Decode the secrets.
-     *
-     * @param string $sourceNamespace The source namespace.
-     * @param string $secretName The secret name.
-     * @return string The decoded secrets.
-     */
-    private function decodeSecrets($envName)
-    {
-        $this->secretName = $this->getSecretName($envName);
-
-        $command = "cloud-platform decode-secret -n hale-platform-$envName -s $this->secretName";
-        $output = shell_exec($command);
-        return rtrim($output);
     }
 
     /**
@@ -618,6 +587,72 @@ public function handle()
             // Security measure: Activate the "wp-force-login" plugin for all sites in non-prod environments
             passthru("$podExec wp plugin activate wp-force-login --url=$domainPath");
         }
+    }
+
+    /**
+     * Syncs an S3 bucket with the local machine.
+     *
+     * This method synchronizes files between two Amazon S3 buckets using the AWS CLI.
+     * The source S3 bucket is specified by the `$source` parameter, and the target S3 bucket is specified by the `$target` parameter.
+     * The sync operation copies files from the source bucket to the target bucket,
+     * ensuring that the target bucket matches the contents of the source bucket.
+     *
+     * @param string $source The source environment representing the name of the source S3 bucket.
+     * @param string $target The target environment representing the name of the target S3 bucket.
+     * @param string $profile The AWS profile to use for authentication.
+     * @return array An array containing the AWS CLI output and a boolean value indicating the success of the sync operation.
+     */
+    public function syncS3BucketWithTarget($source, $target)
+    {
+        $resultCode = 0;
+        $output = '';
+
+        $sourceBucketsecretName = $this->getSecretName($source);
+        $sourceBucketsecrets = $this->decodeSecrets($source);
+
+        $targetBucketsecretName = $this->getSecretName($target);
+        $targetBucketsecrets = $this->decodeSecrets($target);
+
+        $sourceBucketjson_secrets = json_decode($sourceBucketsecrets, true);
+        $sourceBucket = $sourceBucketjson_secrets['data']['S3_UPLOADS_BUCKET'];
+
+        $targetBucketjson_secrets = json_decode($targetBucketsecrets, true);
+        $targetBucket = $targetBucketjson_secrets['data']['S3_UPLOADS_BUCKET'];
+
+        passthru("aws s3 sync s3://$sourceBucket/uploads s3://$targetBucket/uploads --profile hale-platform-$source-s3 --profile hale-platform-$target-s3 --acl=public-read");
+    }
+
+
+    /**
+     * Get the secret name.
+     *
+     * @param string $sourceNamespace The source namespace.
+     * @param string $podName The pod name.
+     * @return string The secret name.
+     */
+    private function getSecretName($envName)
+    {
+        $podName = $this->getPodName($envName);
+
+        $command = "kubectl describe -n hale-platform-$envName pods/$podName | grep -o 'wpsecrets-[[:digit:]]*'";
+        $output = shell_exec($command);
+        return rtrim($output);
+    }
+
+    /**
+     * Decode the secrets.
+     *
+     * @param string $sourceNamespace The source namespace.
+     * @param string $secretName The secret name.
+     * @return string The decoded secrets.
+     */
+    private function decodeSecrets($envName)
+    {
+        $this->secretName = $this->getSecretName($envName);
+
+        $command = "cloud-platform decode-secret -n hale-platform-$envName -s $this->secretName";
+        $output = shell_exec($command);
+        return rtrim($output);
     }
 
 
