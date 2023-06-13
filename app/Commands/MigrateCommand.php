@@ -114,20 +114,6 @@ class MigrateCommand extends Command
     protected $profile;
 
     /**
-     * Source environment domain URL.
-     *
-     * @var string|null
-     */
-    protected $oldURL;
-
-    /**
-     * Target domain URL.
-     *
-     * @var string|null
-     */
-    protected $newURL;
-
-    /**
      * Site array.
      *
      * @var array|null
@@ -160,21 +146,9 @@ public function handle()
     // Migrating from CloudPlatform to local Docker site
     if ($this->target === 'local') {
         $this->migrateToLocalEnv(
-            $this->podExec,
             $this->source,
             $this->sqlFile,
-            $this->sourceNamespace,
-            $this->podName,
-            $this->path,
-            $this->target,
-            $this->secretName,
-            $this->secrets,
-            $this->json_secrets,
-            $this->bucket,
-            $this->uploadsPath,
-            $this->profile,
-            $this->oldURL,
-            $this->newURL
+            $this->target
         );
         return;
     }
@@ -207,98 +181,113 @@ public function handle()
      * @return void
      */
     public function migrateToLocalEnv(
-        $podExec,
         $source,
         $sqlFile,
-        $sourceNamespace,
-        $podName,
-        $path,
-        $target,
-        $secretName,
-        $secrets,
-        $json_secrets,
-        $bucket,
-        $uploadsPath,
-        $profile,
-        $oldURL,
-        $newURL
+        $target
         ) {
-        
-                    // Migration to local specific variables depends on Docker
-        $containerID = rtrim(shell_exec('docker ps -aqf "name=^wordpress$"'));
-        $containerExec = "docker exec -it wordpress";
 
-        // Export SQL from RDS to pod container
-        $resultCode = $this->exportRdsToContainer($this->podExec, $this->source, $this->sqlFile);
-
-        if (!$resultCode) {
-            $this->handleFailure("Failed to export $source database from RDS. Exiting task.");
-            return;
+        // Check that Docker is running locally
+        if (!$this->isDockerRunning()) {
+            $this->info("Docker is not running on the local computer.");
         }
+            
+        // Step 1: Export SQL from RDS to pod container
+        $this->exportRdsToContainer($source, $sqlFile) || exit(1);
 
-        passthru("kubectl cp -n $sourceNamespace -c wordpress $podName:$sqlFile $sqlFile");
+        // Step 2: Copy SQL file from the container to the local machine
+        $this->copyFileFromPod($source, $sqlFile) || exit(1);
 
-        # Copy SQL from local machine to Docker container
-        $this->task("Copying database from local machine to target container.", function () use ($containerID, $sqlFile) {
-            passthru("docker cp $sqlFile $containerID:/var/www/html/$sqlFile", $resultCode);
+        // Step 3: Delete SQL file from the container
+        $this->deleteSQLFileContainer($source, $sqlFile) || exit(1);
 
-            $resultCode = ($resultCode === 0) ? true : false;
-            return $resultCode;
-        });
+        // Step 4: Copy SQL file from the local machine to the target container
+        $this->copySqlFileToLocalContainer($sqlFile) || exit(1);
 
-        # Import DB into RDS database
-        $this->task("Importing $source database into local mariadb.", function () use ($containerExec, $sqlFile) {
-            passthru("$containerExec wp db import $sqlFile", $resultCode);
+        // Step 5: Copy SQL file from container into local MariaDB database
+        $this->importDbIntoLocalMariaDb($sqlFile);
 
-            $resultCode = ($resultCode === 0) ? true : false;
-            return $resultCode;
-        });
+        // Step 6: Delete SQL file from the container
+        $this->deleteSQLFileLocalContainer($sqlFile) || exit(1);
 
-        # Delete SQL file in container no longer needed
-        $this->task("Clean-up: delete $source database from container.", function () use ($podExec, $sqlFile) {
-            passthru("$podExec rm $sqlFile", $resultCode);
+        // Step 7: Rewrite URLs to match the local hale.docker URL
+        $this->replaceDatabaseURLsLocal() || exit(1);
 
-            $resultCode = ($resultCode === 0) ? true : false;
-            return $resultCode;
-        });
+        
+        //             // Migration to local specific variables depends on Docker
+        // $containerID = rtrim(shell_exec('docker ps -aqf "name=^wordpress$"'));
+        // $containerExec = "docker exec -it wordpress";
 
-        # Delete SQL file on local machine
-        $this->task("Clean-up: delete sql file on local machine.", function () use ($path, $sqlFile) {
-            passthru("rm $path/$sqlFile", $resultCode);
+        // // Export SQL from RDS to pod container
+        // $resultCode = $this->exportRdsToContainer($this->podExec, $this->source, $this->sqlFile);
 
-            $resultCode = ($resultCode === 0) ? true : false;
-            return $resultCode;
-        });
+        // if (!$resultCode) {
+        //     $this->handleFailure("Failed to export $source database from RDS. Exiting task.");
+        //     return;
+        // }
 
-        # Perform string replace on imported DB
-        $this->task("Rewrite database URLs to match target environment.", function () use ($containerExec, $oldURL, $newURL) {
-            passthru("$containerExec wp search-replace $oldURL $newURL --url=$oldURL --network --precise --skip-columns=guid --report-changed-only --recurse-objects", $resultCode);
+        // passthru("kubectl cp -n $sourceNamespace -c wordpress $podName:$sqlFile $sqlFile");
 
-            $resultCode = ($resultCode === 0) ? true : false;
-            return $resultCode;
-        });
+        // # Copy SQL from local machine to Docker container
+        // $this->task("Copying database from local machine to target container.", function () use ($containerID, $sqlFile) {
+        //     passthru("docker cp $sqlFile $containerID:/var/www/html/$sqlFile", $resultCode);
 
-        # Check that there is a /wordpress folder in the directory this is run
-        $this->task("Check /wordpress folder exsits locally.", function () use ($path) {
-            if (!is_dir($path . "/wordpress")) {
-                $this->info('Wordpress installation not found. Check you are in the root
-                directory of the hale-platform repo and have already run
-                the site locally, so that a wordpress folder has been generated.');
-                $resultCode = false;
-            } else {
-                $resultCode = 0;
-            }
+        //     $resultCode = ($resultCode === 0) ? true : false;
+        //     return $resultCode;
+        // });
 
-            $resultCode = ($resultCode === 0) ? true : false;
-            return $resultCode;
-        });
+        // # Import DB into RDS database
+        // $this->task("Importing $source database into local mariadb.", function () use ($containerExec, $sqlFile) {
+        //     passthru("$containerExec wp db import $sqlFile", $resultCode);
 
-        $this->task("Sync s3 $source bucket with local.", function () use ($bucket, $uploadsPath, $profile) {
-            passthru("aws s3 sync --quiet --profile $profile s3://$bucket $uploadsPath", $resultCode);
+        //     $resultCode = ($resultCode === 0) ? true : false;
+        //     return $resultCode;
+        // });
 
-            $resultCode = ($resultCode === 0) ? true : false;
-            return $resultCode;
-        });
+        // # Delete SQL file in container no longer needed
+        // $this->task("Clean-up: delete $source database from container.", function () use ($podExec, $sqlFile) {
+        //     passthru("$podExec rm $sqlFile", $resultCode);
+
+        //     $resultCode = ($resultCode === 0) ? true : false;
+        //     return $resultCode;
+        // });
+
+        // # Delete SQL file on local machine
+        // $this->task("Clean-up: delete sql file on local machine.", function () use ($path, $sqlFile) {
+        //     passthru("rm $path/$sqlFile", $resultCode);
+
+        //     $resultCode = ($resultCode === 0) ? true : false;
+        //     return $resultCode;
+        // });
+
+        // # Perform string replace on imported DB
+        // $this->task("Rewrite database URLs to match target environment.", function () use ($containerExec, $oldURL, $newURL) {
+        //     passthru("$containerExec wp search-replace $oldURL $newURL --url=$oldURL --network --precise --skip-columns=guid --report-changed-only --recurse-objects", $resultCode);
+
+        //     $resultCode = ($resultCode === 0) ? true : false;
+        //     return $resultCode;
+        // });
+
+        // # Check that there is a /wordpress folder in the directory this is run
+        // $this->task("Check /wordpress folder exsits locally.", function () use ($path) {
+        //     if (!is_dir($path . "/wordpress")) {
+        //         $this->info('Wordpress installation not found. Check you are in the root
+        //         directory of the hale-platform repo and have already run
+        //         the site locally, so that a wordpress folder has been generated.');
+        //         $resultCode = false;
+        //     } else {
+        //         $resultCode = 0;
+        //     }
+
+        //     $resultCode = ($resultCode === 0) ? true : false;
+        //     return $resultCode;
+        // });
+
+        // $this->task("Sync s3 $source bucket with local.", function () use ($bucket, $uploadsPath, $profile) {
+        //     passthru("aws s3 sync --quiet --profile $profile s3://$bucket $uploadsPath", $resultCode);
+
+        //     $resultCode = ($resultCode === 0) ? true : false;
+        //     return $resultCode;
+        // });
 
     }
     
@@ -357,7 +346,6 @@ public function handle()
         $this->info("Success. " . ucfirst($source) . " has been migrated to " . ucfirst($target) . ".");
     }
 
-
     /**
      * Get the pod name for the specified namespace.
      *
@@ -383,58 +371,58 @@ public function handle()
     {
         $podName = $this->getPodName($envName);
 
-        $command = "kubectl cp --retries=10 -n hale-platform-$envName -c wordpress $podName:$sqlFile $sqlFile";
-        passthru($command, $resultCode);
+        return $this->task("Copying database from container to local machine.", function () use ($envName, $podName, $sqlFile) {
+            $command = "kubectl cp --retries=10 -n hale-platform-$envName -c wordpress $podName:$sqlFile $sqlFile";
+            passthru($command, $resultCode);
 
-        if ($resultCode === 0) {
-            return true;
-        } else {
-            $this->handleFailure("Failed to copy database from container to local machine. Exiting task with error code: $resultCode");
-            exit($resultCode);
-        }
+            if ($resultCode === 0) {
+                return true;
+            } else {
+                $this->handleFailure("Failed to copy database from container to local machine. Exiting task with error code: $resultCode");
+                exit($resultCode);
+            }
+        });
     }
 
 
     /**
-     * Copy the .sql file from local machine to the target container.
+     * Copy source database file on local machine to the target container.
      *
-     * @param string $sqlFilePath  The local path of the .sql file.
-     * @param string $sourceNamespace    The sourceNamespace.
-     * @param string $podName      The pod name.
-     * @param string $sqlFile      The destination path in the container.
-     * @return bool                True if the copy is successful; otherwise, false.
+     * @param string $sqlFilePath The local path of the .sql file.
+     * @param string $envName The namespace.
+     * @param string $sqlFile The destination path in the container.
+     * @return bool True if the copy is successful; otherwise, false.
      */
-    private function copySqlFileToContainer($envName, $sqlFile)
+    private function copySqlFileToContainer($sqlFilePath, $envName, $sqlFile)
     {
         $podName = $this->getPodName($envName);
 
-        $resultCode = $this->task("Uploading database file from temp local file into $this->target container", function () use ($podName, $sqlFile, $envName) {
-            passthru("kubectl cp --retries=10 -n hale-platform-$envName $sqlFile hale-platform-$envName/$podName:$sqlFile -c wordpress", $resultCode);
+        $resultCode = $this->task("Uploading database file from temp local file into $this->target container", function () use ($podName, $sqlFile, $envName, $sqlFilePath) {
+            passthru("kubectl cp --retries=10 -n hale-platform-$envName $sqlFilePath hale-platform-$envName/$podName:$sqlFile -c wordpress", $resultCode);
             $resultCode = ($resultCode === 0) ? true : false;
             return $resultCode;
         });
-        
+
         if (!$resultCode) {
-            $this->handleFailure('Failed to copy .sql file from local to container. Exiting task.');
+            $this->handleFailure("Failed to copy .sql file from local machine to container. Exiting task. Code $resultCode");
             return false;
         }
-        
+
         return true;
     }
 
     /**
      * Export the database from RDS to the container.
      *
-     * @param string $podExec   The pod exec command.
-     * @param string $source    The source database.
-     * @param string $sqlFile   The SQL file path.
-     * @return bool             True if the export is successful; otherwise, false.
+     * @param string $envName The namespace.
+     * @param string $sqlFile The SQL file path.
+     * @return bool True if the export is successful; otherwise, false.
      */
     private function exportRdsToContainer($envName, $sqlFile)
     {
         $podExec = $this->getPodExecCommand($envName);
 
-        $resultCode = $this->task("Export $envName database from RDS", function () use ($podExec, $sqlFile) {
+        $resultCode = $this->task("Export $envName database from RDS to container", function () use ($podExec, $sqlFile) {
             passthru("$podExec wp db export --porcelain $sqlFile", $resultCode);
             $resultCode = ($resultCode === 0) ? true : false;
             return $resultCode;
@@ -451,7 +439,7 @@ public function handle()
     /**
      * Import the database into RDS.
      *
-     * @param string $podExec The pod execution command.
+     * @param string $envName The namespace.
      * @param string $sqlFile The SQL file to import.
      * @return bool True if the import is successful; otherwise, false.
      */
@@ -465,22 +453,19 @@ public function handle()
         if ($resultCode === 0) {
             return true;
         } else {
-            $this->handleFailure("Failed to import the database into RDS. Exiting task.");
+            $this->handleFailure("Failed to import the database into RDS from target container. Exiting task.");
             return false;
         }
     }
 
-
     /**
      * Get the pod execution command.
      *
-     * @param string $sourceNamespace The source namespace.
-     * @param string $podName The pod name.
+     * @param string $envName The namespace.
      * @return string The pod execution command.
      */
     private function getPodExecCommand($envName)
     {
-
         $podName = $this->getPodName($envName);
 
         return "kubectl exec -it -n hale-platform-$envName -c wordpress pod/$podName --";
@@ -489,7 +474,7 @@ public function handle()
     /**
      * Delete the SQL file in the container.
      *
-     * @param string $podExec The pod exec command.
+     * @param string $envName The namespace.
      * @param string $sqlFile The SQL file to delete.
      * @return bool Indicates whether the deletion was successful or not.
      */
@@ -497,8 +482,29 @@ public function handle()
     {
         $podExec = $this->getPodExecCommand($envName);
 
-        return $this->task("Clean-up: delete $sqlFile from container.", function () use ($podExec, $sqlFile) {
+        return $this->task("Delete temp database file from container. No longer needed.", function () use ($podExec, $sqlFile) {
             passthru("$podExec rm $sqlFile", $resultCode);
+
+            if ($resultCode !== 0) {
+                $this->handleFailure("Failed to delete $sqlFile from container. Exiting task.");
+                return false;
+            }
+
+            return true;
+        });
+    }
+
+    /**
+     * Delete the SQL file in the local container.
+     *
+     * @param string $envName The namespace.
+     * @param string $sqlFile The SQL file to delete.
+     * @return bool Indicates whether the deletion was successful or not.
+     */
+    private function deleteSQLFileLocalContainer($sqlFile)
+    {
+        return $this->task("Delete temp database file from container. No longer needed.", function () use ($sqlFile) {
+            passthru("docker exec -it wordpress rm $sqlFile", $resultCode);
 
             if ($resultCode !== 0) {
                 $this->handleFailure("Failed to delete $sqlFile from container. Exiting task.");
@@ -518,7 +524,7 @@ public function handle()
      */
     private function deleteSqlFileLocal($path, $sqlFile)
     {
-        $command = "rm $path/$sqlFile";
+        $command = "docker -it wordpresss rm $sqlFile";
         passthru($command, $resultCode);
 
         if ($resultCode === 0) {
@@ -537,7 +543,6 @@ public function handle()
      */
     private function replaceDatabaseURLs($envName)
     {
-
         // Define the old and new URLs based on the environment names
         $sourceSiteURL = "hale-platform-$this->source.apps.live.cloud-platform.service.justice.gov.uk";
         $targetSiteURL = "hale-platform-$this->target.apps.live.cloud-platform.service.justice.gov.uk";
@@ -563,8 +568,6 @@ public function handle()
      *
      * @param string $envName The target environment name.
      * @param array $sites The array of site details.
-     * @param string $namespace The namespace.
-     * @param string $podExec The pod execution command.
      * @return void
      */
     private function productionDatabaseDomainRewrite($envName, array $sites)
@@ -599,8 +602,6 @@ public function handle()
      *
      * @param string $source The source environment representing the name of the source S3 bucket.
      * @param string $target The target environment representing the name of the target S3 bucket.
-     * @param string $profile The AWS profile to use for authentication.
-     * @return array An array containing the AWS CLI output and a boolean value indicating the success of the sync operation.
      */
     public function syncS3BucketWithTarget($source, $target)
     {
@@ -622,12 +623,10 @@ public function handle()
         passthru("aws s3 sync s3://$sourceBucket/uploads s3://$targetBucket/uploads --profile hale-platform-$source-s3 --profile hale-platform-$target-s3 --acl=public-read");
     }
 
-
     /**
      * Get the secret name.
      *
-     * @param string $sourceNamespace The source namespace.
-     * @param string $podName The pod name.
+     * @param string $envName The environment name.
      * @return string The secret name.
      */
     private function getSecretName($envName)
@@ -636,14 +635,14 @@ public function handle()
 
         $command = "kubectl describe -n hale-platform-$envName pods/$podName | grep -o 'wpsecrets-[[:digit:]]*'";
         $output = shell_exec($command);
+
         return rtrim($output);
     }
 
     /**
      * Decode the secrets.
      *
-     * @param string $sourceNamespace The source namespace.
-     * @param string $secretName The secret name.
+     * @param string $envName The environment name.
      * @return string The decoded secrets.
      */
     private function decodeSecrets($envName)
@@ -652,18 +651,100 @@ public function handle()
 
         $command = "cloud-platform decode-secret -n hale-platform-$envName -s $this->secretName";
         $output = shell_exec($command);
+
         return rtrim($output);
     }
 
-
     /**
-     * Handle the failure by displaying an error message and exiting the task.
+     * Handle the failure by displaying an error message.
      *
-     * @param string $errorMessage
+     * @param string $errorMessage The error message.
      * @return void
      */
     private function handleFailure($errorMessage)
     {
         $this->info($errorMessage);
     }
+
+    /**
+     * Check if Docker is running on the local computer.
+     *
+     * @return bool True if Docker is running; otherwise, false.
+     */
+    private function isDockerRunning()
+    {
+        $command = 'docker info >/dev/null 2>&1 && echo "Docker is running" || echo "Docker is not running"';
+
+        // Execute the command and capture the output
+        exec($command, $output, $resultCode);
+
+        // Check if the output contains the expected string
+        if ($resultCode === 0 && !empty($output) && $output[0] === 'Docker is running') {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Copy SQL file from local machine to Docker container.
+     *
+     * @param string $containerID The ID of the Docker container.
+     * @param string $sqlFile The SQL file to copy.
+     * @return bool True if the copy is successful; otherwise, false.
+     */
+    private function copySqlFileToLocalContainer($sqlFile)
+    {
+        $containerID = rtrim(shell_exec('docker ps -aqf "name=^wordpress$"'));
+
+        $resultCode = $this->task("Copying database from local machine to target container.", function () use ($containerID, $sqlFile) {
+            passthru("docker cp $sqlFile $containerID:/var/www/html/$sqlFile", $resultCode);
+            $resultCode = ($resultCode === 0) ? true : false;
+            return $resultCode;
+        });
+
+        return $resultCode;
+    }
+
+    /**
+     * Import the database into the local MariaDB.
+     *
+     * @param string $sqlFile The SQL file to import.
+     * @return bool True if the import is successful; otherwise, false.
+     */
+    private function importDbIntoLocalMariaDb($sqlFile)
+    {
+        $resultCode = 0;
+
+        passthru("docker exec -it wordpress wp db import $sqlFile", $resultCode);
+
+        $resultCode = ($resultCode === 0) ? true : false;
+        return $resultCode;
+    }
+
+    /**
+     * Perform string replace on the imported database.
+     *
+     * @param string $containerExec The container execution command.
+     * @param string $oldURL The old URL to be replaced.
+     * @param string $newURL The new URL to replace with.
+     * @return bool True if the string replace is successful; otherwise, false.
+     */
+    private function replaceDatabaseURLsLocal()
+    {
+
+        // Define the old and new URLs based on the environment names
+        $sourceSiteURL = "hale-platform-$this->source.apps.live.cloud-platform.service.justice.gov.uk";
+        $targetSiteURL = "hale.docker";
+
+        $command = "docker exec -it wordpress wp search-replace $sourceSiteURL $targetSiteURL --url=$sourceSiteURL --network --precise --skip-columns=guid --report-changed-only --recurse-objects";
+
+        // Execute the command and capture the result code
+        passthru($command, $resultCode);
+
+        $resultCode = ($resultCode === 0) ? true : false;
+        return $resultCode;
+    }
+
+
 }
