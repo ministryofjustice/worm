@@ -11,7 +11,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+            // Include main array of sites and IDs on multisite installation
+            require __DIR__.'/sitesList.php';
     }
 
     /**

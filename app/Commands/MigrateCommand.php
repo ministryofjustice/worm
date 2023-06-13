@@ -4,6 +4,7 @@ namespace App\Commands;
 
 use Illuminate\Console\Scheduling\Schedule;
 use LaravelZero\Framework\Commands\Command;
+use Illuminate\Container\Container;
 
 class MigrateCommand extends Command
 {
@@ -126,6 +127,13 @@ class MigrateCommand extends Command
      */
     protected $newURL;
 
+    /**
+     * Site array.
+     *
+     * @var array|null
+     */
+    protected $sites;
+
 /**
  * Execute the console command.
  *
@@ -141,15 +149,11 @@ public function handle()
     $this->sqlFile = $this->sourceNamespace . '-' . date("Y-m-d-H-i-s") . '.sql';
     $this->path = rtrim(shell_exec('pwd'));
 
- 
+    $container = Container::getInstance();
+    $this->sites = $container->get('sites');
     
-
     // $this->secretName = $this->getSecretName($env);
-    
     // $this->secrets = $this->decodeSecrets($env);
-
-    
-
     // $this->json_secrets = json_decode($this->secrets);
     // $this->bucket = $this->json_secrets->data->S3_UPLOADS_BUCKET;
     // $this->uploadsPath = $this->path . "/wordpress/wp-content";
@@ -182,21 +186,11 @@ public function handle()
     // Migrating between CloudPlatform environments
     if (in_array($this->target, ['prod', 'staging', 'dev', 'demo'])) {
         $this->migrateBetweenCloudPlatformEnv(
-            $this->podExec,
             $this->source,
             $this->sqlFile,
-            $this->sourceNamespace,
-            $this->podName,
-            $this->path,
             $this->target,
-            $this->secretName,
-            $this->secrets,
-            $this->json_secrets,
-            $this->bucket,
-            $this->uploadsPath,
-            $this->profile,
-            $this->oldURL,
-            $this->newURL
+            $this->sites,
+            $this->path
         );
         return;
     }
@@ -312,71 +306,56 @@ public function handle()
 
     }
     
-
-    
     /**
-     * Migrate between CloudPlatform environments
+     * Migrate between CloudPlatform environments.
      *
-     * @param string $podExec
-     * @param string $source
-     * @param string $sqlFile
-     * @param string $sourceNamespace
-     * @param string $podName
-     * @param string $path
-     * @param string $target
-     * @param string $secretName
-     * @param string $secrets
-     * @param object $json_secrets
-     * @param string $bucket
-     * @param string $uploadsPath
-     * @param string $profile
+     * @param string $source The source environment.
+     * @param string $sqlFile The SQL file to migrate.
+     * @param string $target The target environment.
+     * @param array $sites An array of site configurations.
+     * @param string $path The path to the SQL file.
      * @return void
      */
     public function migrateBetweenCloudPlatformEnv(
-        $podExec,
         $source,
         $sqlFile,
-        $sourceNamespace,
-        $podName,
-        $path,
         $target,
-        $secretName,
-        $secrets,
-        $json_secrets,
-        $bucket,
-        $uploadsPath,
-        $profile,
-        $oldURL,
-        $newURL
+        $sites,
+        $path
     ) {
-
-        // Export SQL from RDS to pod container
+        // Step 1: Export SQL from RDS to pod container
         $this->exportRdsToContainer($source, $sqlFile) || exit(1);
 
-        // Copy from Container temporarily to local machine
+        // Step 2: Copy SQL file from the container to the local machine
         $this->copyFileFromPod($source, $sqlFile) || exit(1);
 
-        // Delete SQL file from container
+        // Step 3: Delete SQL file from the container
         $this->deleteSQLFileContainer($source, $sqlFile) || exit(1);
 
-        // Copy from temp file on local machine to new target container
+        // Step 4: Copy SQL file from the local machine to the target container
         $this->copySqlFileToContainer($target, $sqlFile) || exit(1);
 
-        // Delete the temp file locally
+        // Step 5: Delete the temporary SQL file from the local machine
         $this->deleteSqlFileLocal($path, $sqlFile) || exit(1);
 
-        // Import the new database into the new RDS instance
+        // Step 6: Import the new database into the target RDS instance
         $this->importContainerToRds($target, $sqlFile) || exit(1);
 
-        // Delete SQL file from container
+        // Step 7: Delete SQL file from the target container
         $this->deleteSQLFileContainer($target, $sqlFile) || exit(1);
 
-        // Rewrite URLs to match environment
+        // Step 8: Rewrite URLs to match the target environment
         $this->replaceDatabaseURLs($target) || exit(1);
 
-        // Final message to say migrtion is complete
+        // Step 9: Perform additional domain rewrite for production source environments
+        if (in_array($this->source, ['prod'])) {
+            $this->productionDatabaseDomainRewrite($target, $sites) || exit(1);
+        }
+
+        // Step 10: Migration completed successfully
         $this->info("Success. $source has been migrated to $target.");
     }
+
 
     /**
      * Get the pod name for the specified namespace.
@@ -404,7 +383,7 @@ public function handle()
     {
         $podName = $this->getPodName($envName);
 
-        $command = "kubectl cp --retries=-1 -n hale-platform-$envName -c wordpress $podName:$sqlFile $sqlFile";
+        $command = "kubectl cp --retries=10 -n hale-platform-$envName -c wordpress $podName:$sqlFile $sqlFile";
         passthru($command, $resultCode);
         
         if ($resultCode === 0) {
@@ -428,8 +407,8 @@ public function handle()
     {
         $podName = $this->getPodName($envName);
 
-        $resultCode = $this->task("Uploading database file from $envName into $this->target container", function () use ($podName, $sqlFile, $envName) {
-            passthru("kubectl cp -n hale-platform-$envName $sqlFile hale-platform-$envName/$podName:$sqlFile -c wordpress", $resultCode);
+        $resultCode = $this->task("Uploading database file from temp local file into $this->target container", function () use ($podName, $sqlFile, $envName) {
+            passthru("kubectl cp --retries=10 -n hale-platform-$envName $sqlFile hale-platform-$envName/$podName:$sqlFile -c wordpress", $resultCode);
             $resultCode = ($resultCode === 0) ? true : false;
             return $resultCode;
         });
@@ -589,23 +568,23 @@ public function handle()
      */
     private function replaceDatabaseURLs($envName)
     {
-       
+
         // Define the old and new URLs based on the environment names
-        $oldURL = "hale-platform-$this->source.apps.live.cloud-platform.service.justice.gov.uk";
-        $newURL = "hale-platform-$this->target.apps.live.cloud-platform.service.justice.gov.uk";
+        $sourceSiteURL = "hale-platform-$this->source.apps.live.cloud-platform.service.justice.gov.uk";
+        $targetSiteURL = "hale-platform-$this->target.apps.live.cloud-platform.service.justice.gov.uk";
 
         // Get the pod execution command for the specified environment
         $podExec = $this->getPodExecCommand($envName);
 
         // Execute the URL replacement command
-        $command = "$podExec wp search-replace $oldURL $newURL --url=$oldURL --network --precise --skip-columns=guid --report-changed-only --recurse-objects";
+        $command = "$podExec wp search-replace $sourceSiteURL $targetSiteURL --url=$sourceSiteURL --network --precise --skip-columns=guid --report-changed-only --recurse-objects";
         passthru($command, $resultCode);
 
         // Check the result code and handle success or failure
         if ($resultCode === 0) {
             return true;
         } else {
-            $this->handleFailure("Failed to replace database URLs. Exiting task.");
+            $this->handleFailure("Failed to replace database URLs. Exiting task with error code: $resultCode");
             return false;
         }
     }
@@ -627,7 +606,7 @@ public function handle()
             $domain = $site['domain'];
             $sitePath = $site['path'];
             $siteID = $site['blogID'];
-            $domainPath = "https://$this->source.apps.live.cloud-platform.service.justice.gov.uk/$sitePath";
+            $domainPath = "https://hale-platform-$this->source.apps.live.cloud-platform.service.justice.gov.uk/$sitePath";
             $newDomainPath = "hale-platform-$envName.apps.live.cloud-platform.service.justice.gov.uk";
 
             $this->info($domain);
@@ -636,7 +615,7 @@ public function handle()
             passthru("$podExec wp db query 'UPDATE wp_blogs SET domain=\"$newDomainPath\" WHERE wp_blogs.blog_id=$siteID'");
             passthru("$podExec wp db query 'UPDATE wp_blogs SET path=\"/$sitePath/\" WHERE wp_blogs.blog_id=$siteID'");
 
-            // Security measure: Activate the "wp-force-login" plugin for all sites in dev environments
+            // Security measure: Activate the "wp-force-login" plugin for all sites in non-prod environments
             passthru("$podExec wp plugin activate wp-force-login --url=$domainPath");
         }
     }
