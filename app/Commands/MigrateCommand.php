@@ -79,34 +79,6 @@ class MigrateCommand extends Command
     protected $secretName;
 
     /**
-     * The secrets from decode-secret command.
-     *
-     * @var string|null
-     */
-    protected $secrets;
-
-    /**
-     * The decoded JSON secrets.
-     *
-     * @var object|null
-     */
-    protected $json_secrets;
-
-    /**
-     * The S3 bucket name.
-     *
-     * @var string|null
-     */
-    protected $bucket;
-
-    /**
-     * The uploads path.
-     *
-     * @var string|null
-     */
-    protected $uploadsPath;
-
-    /**
      * The profile name.
      *
      * @var string|null
@@ -120,118 +92,115 @@ class MigrateCommand extends Command
      */
     protected $sites;
 
-/**
- * Execute the console command.
- *
- * @return mixed
- */
-public function handle()
-{
-    $this->source = $this->argument('source');
-    $this->target = $this->argument('target');
+    /**
+     * Execute the console command.
+     *
+     * @return mixed
+     */
+    public function handle()
+    {
+        $this->source = $this->argument('source');
+        $this->target = $this->argument('target');
 
-    // Get source environment namespace
-    $this->sourceNamespace = "hale-platform-$this->source";
-    $this->sqlFile = $this->sourceNamespace . '-' . date("Y-m-d-H-i-s") . '.sql';
-    $this->path = rtrim(shell_exec('pwd'));
+        // Get source environment namespace
+        $this->sourceNamespace = "hale-platform-$this->source";
+        $this->sqlFile = $this->sourceNamespace . '-' . date("Y-m-d-H-i-s") . '.sql';
+        $this->path = rtrim(shell_exec('pwd'));
+        $this->profile = "$this->sourceNamespace-s3";
 
-    $container = Container::getInstance();
-    $this->sites = $container->get('sites');
-    $this->profile = "$this->sourceNamespace-s3";
+        // Hardcoded site list of production domains
+        // List can be updated in the SiteList.php
+        $container = Container::getInstance();
+        $this->sites = $container->get('sites');
 
-    // Do not allow migration from local to CP environments
-    if ($this->source === 'local') {
-        $this->info("Worming from local => $this->target currently not a feature. Coming soon.");
-        return;
+        // Do not allow migration from local to CP environments for now
+        if ($this->source === 'local') {
+            $this->info("Worming from local => $this->target currently not a feature. Coming soon.");
+            return;
+        }
+
+        // Migrating from CloudPlatform to local Docker site
+        if ($this->target === 'local') {
+            $this->migrateToLocalEnv(
+                $this->source,
+                $this->sqlFile,
+                $this->target,
+                $this->path
+            );
+            return;
+        }
+
+        // Migrating between CloudPlatform environments
+        if (in_array($this->target, ['prod', 'staging', 'dev', 'demo'])) {
+            $this->migrateBetweenCloudPlatformEnv(
+                $this->source,
+                $this->sqlFile,
+                $this->target,
+                $this->sites,
+                $this->path
+            );
+            return;
+        }
+
+        $this->info('Target environment not found.');
     }
-
-    // Migrating from CloudPlatform to local Docker site
-    if ($this->target === 'local') {
-        $this->migrateToLocalEnv(
-            $this->source,
-            $this->sqlFile,
-            $this->target,
-            $this->path
-        );
-        return;
-    }
-
-    // Migrating between CloudPlatform environments
-    if (in_array($this->target, ['prod', 'staging', 'dev', 'demo'])) {
-        $this->migrateBetweenCloudPlatformEnv(
-            $this->source,
-            $this->sqlFile,
-            $this->target,
-            $this->sites,
-            $this->path
-        );
-        return;
-    }
-
-    $this->info('Target environment not found.');
-}
 
     /**
-     * Migrates the data from the specified source to the local environment.
+     * Migrates the data from a CloudPlatform env to the local environment.
      *
-     * @param string $podExec The pod execution command.
-     * @param string $source The source of the database.
-     * @param string $sqlFile The SQL file name.
-     * @param string $sourceNamespace The source namespace.
-     * @param string $podName The pod name.
-     * @param string $path The path.
+     * @param string $source The env name of the CloudPlatform namespace, ie prod, staging.
+     * @param string $sqlFile The SQL database file name.
+     * @param string $target The target container migrating to.
+     * @param string $path The local machine path to present directory.
      * @return void
      */
     public function migrateToLocalEnv(
-        $source,
-        $sqlFile,
-        $target,
-        $path
-        ) {
-
+        string $source,
+        string $sqlFile,
+        string $target,
+        string $path
+    ): void {
         // Check that Docker is running locally
-        if (!$this->isDockerRunning()) {
-            $this->info("Docker is not running on the local computer.");
-        }
+        !$this->isDockerRunning() ? $this->info("Docker is not running on the local computer.") : null;
 
         $this->info("🐛 Starting migration $this->source => local machine.");
-            
+
         // Step 1: Export SQL from RDS to pod container
-        $this->exportRdsToContainer($source, $sqlFile) || exit(1);
+        !$this->exportRdsToContainer($source, $sqlFile) ? exit(1) : null;
 
         // Step 2: Copy SQL file from the container to the local machine
-        $this->copyFileFromPod($source, $sqlFile) || exit(1);
+        !$this->copyFileFromPod($source, $sqlFile) ? exit(1) : null;
 
         // Step 3: Delete SQL file from the container
-        $this->deleteSQLFileContainer($source, $sqlFile) || exit(1);
+        !$this->deleteSQLFileContainer($source, $sqlFile) ? exit(1) : null;
 
         // Step 4: Copy SQL file from the local machine to the target container
-        $this->copySqlFileToLocalContainer($sqlFile) || exit(1);
+        !$this->copySqlFileToLocalContainer($sqlFile) ? exit(1) : null;
 
         // Step 5: Copy SQL file from container into local MariaDB database
         $this->importDbIntoLocalMariaDb($sqlFile);
 
         // Step 6: Delete SQL file from the container
-        $this->deleteSQLFileLocalContainer($sqlFile) || exit(1);
+        !$this->deleteSQLFileLocalContainer($sqlFile) ? exit(1) : null;
 
         // Step 7: Rewrite URLs to match the local hale.docker URL
-        $this->replaceDatabaseURLsLocal() || exit(1);
+        !$this->replaceDatabaseURLsLocal() ? exit(1) : null;
 
         // Step 9: Perform additional domain rewrite for production source environments
         if (in_array($this->source, ['prod'])) {
-            $this->productionDatabaseDomainRewrite($target, $sites) || exit(1);
+            !$this->productionDatabaseDomainRewrite($target, $sites) ? exit(1) : null;
         }
 
         // Check the local repo has the right folder structure for media items
         $this->checkWordPressFolderExists($path);
 
-        // Sync remote s3 bucket with local
+        // // Sync remote s3 bucket with local
         $this->syncS3BucketToLocal($source, $path);
 
         // Migration completed successfully
-        $this->info("Success 🐛 => 🐛." . ucfirst($source) . " has been migrated to " . ucfirst($target) . ".");
+        $this->info("Success 🐛=>🐛. " . ucfirst($source) . " has been migrated to " . ucfirst($target) . ".");
     }
-    
+
     /**
      * Migrate between CloudPlatform environments.
      *
@@ -240,52 +209,52 @@ public function handle()
      * @param string $target The target environment.
      * @param array $sites An array of site configurations.
      * @param string $path The path to the SQL file.
-     * @param string $profile Your local machines AWS profile config name ie hale-platform-dev-s3.
+     * @param string $profile Your local machine's AWS profile config name, e.g., hale-platform-dev-s3.
      * @return void
      */
     public function migrateBetweenCloudPlatformEnv(
-        $source,
-        $sqlFile,
-        $target,
-        $sites,
-        $path
-    ) {
+        string $source,
+        string $sqlFile,
+        string $target,
+        array $sites,
+        string $path
+    ): void {
         $this->info("🐛 Starting migration $this->source => $this->target.");
 
         // Step 1: Export SQL from RDS to pod container
-        $this->exportRdsToContainer($source, $sqlFile) || exit(1);
-
+        !$this->exportRdsToContainer($source, $sqlFile) ? exit(1) : null;
+        
         // Step 2: Copy SQL file from the container to the local machine
-        $this->copyFileFromPod($source, $sqlFile) || exit(1);
-
+        !$this->copyFileFromPod($source, $sqlFile) ? exit(1) : null;
+        
         // Step 3: Delete SQL file from the container
-        $this->deleteSQLFileContainer($source, $sqlFile) || exit(1);
-
+        !$this->deleteSQLFileContainer($source, $sqlFile) ? exit(1) : null;
+        
         // Step 4: Copy SQL file from the local machine to the target container
-        $this->copySqlFileToContainer($target, $sqlFile) || exit(1);
-
+        !$this->copySqlFileToContainer($target, $sqlFile) ? exit(1) : null;
+        
         // Step 5: Delete the temporary SQL file from the local machine
-        $this->deleteSqlFileLocal($path, $sqlFile) || exit(1);
-
+        !$this->deleteSqlFileLocal($path, $sqlFile) ? exit(1) : null;
+        
         // Step 6: Import the new database into the target RDS instance
-        $this->importContainerToRds($target, $sqlFile) || exit(1);
-
+        !$this->importContainerToRds($target, $sqlFile) ? exit(1) : null;
+        
         // Step 7: Delete SQL file from the target container
-        $this->deleteSQLFileContainer($target, $sqlFile) || exit(1);
-
+        !$this->deleteSQLFileContainer($target, $sqlFile) ? exit(1) : null;
+        
         // Step 8: Rewrite URLs to match the target environment
-        $this->replaceDatabaseURLs($target) || exit(1);
-
+        !$this->replaceDatabaseURLs($target) ? exit(1) : null;
+        
         // Step 9: Perform additional domain rewrite for production source environments
         if (in_array($this->source, ['prod'])) {
-            $this->productionDatabaseDomainRewrite($target, $sites) || exit(1);
-        }
+            !$this->productionDatabaseDomainRewrite($target, $sites) ? exit(1) : null;
+        }        
 
-        // Step 10: Update s3 bucket media assets, docs, images etc with the target environment 
+        // Step 10: Update s3 bucket media assets, docs, images, etc. with the target environment
         $this->syncS3BucketWithTarget($source, $target);
 
         // Migration completed successfully
-        $this->info("Success 🐛 => 🐛. " . ucfirst($source) . " has been migrated to " . ucfirst($target) . ".");
+        $this->info("Success 🐛=>🐛. " . ucfirst($source) . " has been migrated to " . ucfirst($target) . ".");
     }
 
     /**
@@ -334,12 +303,12 @@ public function handle()
      * @param string $sqlFile The destination path in the container.
      * @return bool True if the copy is successful; otherwise, false.
      */
-    private function copySqlFileToContainer($sqlFilePath, $envName, $sqlFile)
+    private function copySqlFileToContainer($envName, $sqlFile)
     {
         $podName = $this->getPodName($envName);
 
-        $resultCode = $this->task("=> Uploading database file from temp local file into $this->target container", function () use ($podName, $sqlFile, $envName, $sqlFilePath) {
-            passthru("kubectl cp --retries=10 -n hale-platform-$envName $sqlFilePath hale-platform-$envName/$podName:$sqlFile -c wordpress", $resultCode);
+        $resultCode = $this->task("=> Upload temp local database file into $this->target container.", function () use ($podName, $envName, $sqlFile) {
+            passthru("kubectl cp --retries=10 -n hale-platform-$envName -c wordpress $sqlFile hale-platform-$envName/$podName:$sqlFile", $resultCode);
             $resultCode = ($resultCode === 0) ? true : false;
             return $resultCode;
         });
@@ -464,17 +433,15 @@ public function handle()
      */
     private function deleteSqlFileLocal($path, $sqlFile)
     {
-        return $this->task("=> Deleting SQL file on local machine", function () use ($path, $sqlFile) {
-            $command = "docker -it wordpresss rm $sqlFile";
-            passthru($command, $resultCode);
+        $command = "rm $path/$sqlFile";
+        passthru($command, $resultCode);
 
-            if ($resultCode === 0) {
-                return true;
-            } else {
-                $this->handleFailure("Failed to delete SQL file on local machine. Exiting task with error code: $resultCode");
-                return false;
-            }
-        });
+        if ($resultCode === 0) {
+            return true;
+        } else {
+            $this->handleFailure("Failed to delete SQL file on local machine. Exiting task.");
+            exit($resultCode);
+        }
     }
 
     /**
@@ -584,6 +551,7 @@ public function handle()
      */
     private function syncS3BucketToLocal($source, $path)
     {
+       
         $uploadsPath = $path . "/wordpress/wp-content";
 
         $sourceBucketsecretName = $this->getSecretName($source);
@@ -592,8 +560,8 @@ public function handle()
         $sourceBucketjson_secrets = json_decode($sourceBucketsecrets, true);
         $sourceBucket = $sourceBucketjson_secrets['data']['S3_UPLOADS_BUCKET'];
 
-        $this->info("Sync $source bucket with local uploads directory");
-        passthru("aws s3 sync --quiet --profile hale-platform-$source-s3 s3://$sourceBucket $uploadsPath", $resultCode);
+        $this->info("Sync $source s3 bucket with local uploads directory");
+        passthru("aws s3 sync --profile hale-platform-$source-s3 s3://$sourceBucket $uploadsPath", $resultCode);
     }
 
     /**
