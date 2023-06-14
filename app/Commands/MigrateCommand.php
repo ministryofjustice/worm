@@ -51,13 +51,6 @@ class MigrateCommand extends Command
     protected $podName;
 
     /**
-     * The pod execution command.
-     *
-     * @var string|null
-     */
-    protected $podExec;
-
-    /**
      * The SQL file name.
      *
      * @var string|null
