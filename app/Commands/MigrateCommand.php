@@ -159,13 +159,13 @@ class MigrateCommand extends Command
         $this->info("🐛 Starting migration $this->source => local machine.");
 
         // Step 1: Export SQL from RDS to pod container
-        !$this->exportRdsToContainer($source, $sqlFile) ? exit(1) : null;
+        !$this->exportSqlFileToWpContainer($source, $sqlFile) ? exit(1) : null;
 
         // Step 2: Copy SQL file from the container to the local machine
-        !$this->copyFileFromPod($source, $sqlFile) ? exit(1) : null;
+        !$this->copySqlFileToLocal($source, $sqlFile) ? exit(1) : null;
 
         // Step 3: Delete SQL file from the container
-        !$this->deleteSQLFileContainer($source, $sqlFile) ? exit(1) : null;
+        !$this->deleteSqlFileFromContainer($source, $sqlFile) ? exit(1) : null;
 
         // Step 4: Copy SQL file from the local machine to the target container
         !$this->copySqlFileToLocalContainer($sqlFile) ? exit(1) : null;
@@ -215,25 +215,25 @@ class MigrateCommand extends Command
         $this->info("🐛 Starting migration $this->source => $this->target.");
 
         // Step 1: Export SQL from RDS to pod container
-        !$this->exportRdsToContainer($source, $sqlFile) ? exit(1) : null;
+        !$this->exportSqlFileToWpContainer($source, $sqlFile) ? exit(1) : null;
 
         // Step 2: Copy SQL file from the container to the local machine
-        !$this->copyFileFromPod($source, $sqlFile) ? exit(1) : null;
+        !$this->copySqlFileToLocal($source, $sqlFile) ? exit(1) : null;
 
         // Step 3: Delete SQL file from the container
-        !$this->deleteSQLFileContainer($source, $sqlFile) ? exit(1) : null;
+        !$this->deleteSqlFileFromContainer($source, $sqlFile) ? exit(1) : null;
 
         // Step 4: Copy SQL file from the local machine to the target container
         !$this->copySqlFileToContainer($target, $sqlFile) ? exit(1) : null;
 
         // Step 5: Delete the temporary SQL file from the local machine
-        !$this->deleteSqlFileLocal($path, $sqlFile) ? exit(1) : null;
+        !$this->deleteSqlFileFromLocal($path, $sqlFile) ? exit(1) : null;
 
         // Step 6: Import the new database into the target RDS instance
-        !$this->importDatabaseFromContainerToRds($target, $sqlFile) ? exit(1) : null;
+        !$this->importSqlFromContainerToRds($target, $sqlFile) ? exit(1) : null;
 
         // Step 7: Delete SQL file from the target container
-        !$this->deleteSQLFileContainer($target, $sqlFile) ? exit(1) : null;
+        !$this->deleteSqlFileFromContainer($target, $sqlFile) ? exit(1) : null;
 
         // Step 8: Rewrite URLs to match the target environment
         !$this->replaceDatabaseURLs($target) ? exit(1) : null;
@@ -271,7 +271,7 @@ class MigrateCommand extends Command
      * @param string $sqlFile The SQL file name.
      * @return bool True if the copy is successful; otherwise, false.
      */
-    private function copyFileFromPod($envName, $sqlFile)
+    private function copySqlFileToLocal($envName, $sqlFile)
     {
         $podName = $this->getPodName($envName);
 
@@ -321,7 +321,7 @@ class MigrateCommand extends Command
      * @param string $sqlFile The SQL file path.
      * @return bool True if the export is successful; otherwise, false.
      */
-    private function exportRdsToContainer($envName, $sqlFile)
+    private function exportSqlFileToWpContainer($envName, $sqlFile)
     {
         $podExec = $this->getPodExecCommand($envName);
 
@@ -346,7 +346,7 @@ class MigrateCommand extends Command
      * @param string $sqlFile The SQL file to import.
      * @return bool True if the import is successful; otherwise, false.
      */
-    private function importDatabaseFromContainerToRds($envName, $sqlFile)
+    private function importSqlFromContainerToRds($envName, $sqlFile)
     {
         $podExec = $this->getPodExecCommand($envName);
 
@@ -381,7 +381,7 @@ class MigrateCommand extends Command
      * @param string $sqlFile The SQL file to delete.
      * @return bool Indicates whether the deletion was successful or not.
      */
-    private function deleteSQLFileContainer($envName, $sqlFile)
+    private function deleteSqlFileFromContainer($envName, $sqlFile)
     {
         $podExec = $this->getPodExecCommand($envName);
 
@@ -424,7 +424,7 @@ class MigrateCommand extends Command
      * @param string $sqlFile The SQL file name.
      * @return bool True if the deletion is successful; otherwise, false.
      */
-    private function deleteSqlFileLocal($path, $sqlFile)
+    private function deleteSqlFileFromLocal($path, $sqlFile)
     {
         $command = "rm $path/$sqlFile";
         passthru($command, $resultCode);
