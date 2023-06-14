@@ -230,7 +230,7 @@ class MigrateCommand extends Command
         !$this->deleteSqlFileLocal($path, $sqlFile) ? exit(1) : null;
 
         // Step 6: Import the new database into the target RDS instance
-        !$this->importContainerToRds($target, $sqlFile) ? exit(1) : null;
+        !$this->importDatabaseFromContainerToRds($target, $sqlFile) ? exit(1) : null;
 
         // Step 7: Delete SQL file from the target container
         !$this->deleteSQLFileContainer($target, $sqlFile) ? exit(1) : null;
@@ -346,7 +346,7 @@ class MigrateCommand extends Command
      * @param string $sqlFile The SQL file to import.
      * @return bool True if the import is successful; otherwise, false.
      */
-    private function importContainerToRds($envName, $sqlFile)
+    private function importDatabaseFromContainerToRds($envName, $sqlFile)
     {
         $podExec = $this->getPodExecCommand($envName);
 
