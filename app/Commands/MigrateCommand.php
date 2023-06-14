@@ -106,9 +106,15 @@ class MigrateCommand extends Command
         $container = Container::getInstance();
         $this->sites = $container->get('sites');
 
-        // Do not allow migration from local to CP environments for now
+        // Do not allow migration from local to CP environments
         if ($this->source === 'local') {
-            $this->info("Worming from local => $this->target currently not a feature. Coming soon.");
+            $this->info("Worming from local => $this->target currently not a feature.");
+            return;
+        }
+
+        // Account for typos wrong env entered in
+        if (!in_array($this->source, ['prod', 'staging', 'dev', 'demo'])) {
+            $this->info("Worm cannot find the $this->source environment.");
             return;
         }
 
@@ -202,7 +208,6 @@ class MigrateCommand extends Command
      * @param string $target The target environment.
      * @param array $sites An array of site configurations.
      * @param string $path The path to the SQL file.
-     * @param string $profile Your local machine's AWS profile config name, e.g., hale-platform-dev-s3.
      * @return void
      */
     public function migrateBetweenCloudPlatformEnv(
