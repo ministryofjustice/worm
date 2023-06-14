@@ -13,7 +13,7 @@ class MigrateCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'migrate { source : Environment you are migrating from. } { target : Environment you are migrating to. Options are prod, staging, dev, demo. }';
+    protected $signature = 'migrate { source : Environment you are migrating from. } { target : Environment you are migrating to: prod, staging, dev, demo & local. }';
 
     /**
      * The description of the command.
