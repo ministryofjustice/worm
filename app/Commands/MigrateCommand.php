@@ -223,32 +223,32 @@ class MigrateCommand extends Command
 
         // Step 1: Export SQL from RDS to pod container
         !$this->exportRdsToContainer($source, $sqlFile) ? exit(1) : null;
-        
+
         // Step 2: Copy SQL file from the container to the local machine
         !$this->copyFileFromPod($source, $sqlFile) ? exit(1) : null;
-        
+
         // Step 3: Delete SQL file from the container
         !$this->deleteSQLFileContainer($source, $sqlFile) ? exit(1) : null;
-        
+
         // Step 4: Copy SQL file from the local machine to the target container
         !$this->copySqlFileToContainer($target, $sqlFile) ? exit(1) : null;
-        
+
         // Step 5: Delete the temporary SQL file from the local machine
         !$this->deleteSqlFileLocal($path, $sqlFile) ? exit(1) : null;
-        
+
         // Step 6: Import the new database into the target RDS instance
         !$this->importContainerToRds($target, $sqlFile) ? exit(1) : null;
-        
+
         // Step 7: Delete SQL file from the target container
         !$this->deleteSQLFileContainer($target, $sqlFile) ? exit(1) : null;
-        
+
         // Step 8: Rewrite URLs to match the target environment
         !$this->replaceDatabaseURLs($target) ? exit(1) : null;
-        
+
         // Step 9: Perform additional domain rewrite for production source environments
         if (in_array($this->source, ['prod'])) {
             !$this->productionDatabaseDomainRewrite($target, $sites) ? exit(1) : null;
-        }        
+        }
 
         // Step 10: Update s3 bucket media assets, docs, images, etc. with the target environment
         $this->syncS3BucketWithTarget($source, $target);
@@ -508,7 +508,6 @@ class MigrateCommand extends Command
                 // Security measure: Activate the "wp-force-login" plugin for all sites in non-prod environments
                 passthru("$podExec wp plugin activate wp-force-login --url=$domainPath");
             }
-
         }
     }
 
@@ -551,7 +550,7 @@ class MigrateCommand extends Command
      */
     private function syncS3BucketToLocal($source, $path)
     {
-       
+
         $uploadsPath = $path . "/wordpress/wp-content";
 
         $sourceBucketsecretName = $this->getSecretName($source);
@@ -698,7 +697,7 @@ class MigrateCommand extends Command
     private function checkWordPressFolderExists($path)
     {
         $wordpressPath = $path . "/wordpress";
-        $wordpressPathText = 
+        $wordpressPathText =
         'Wordpress installation not found. 
         Check you are in the root directory of the hale-platform repo and 
         have already run the site locally, so that a wordpress folder has been generated.';
@@ -710,5 +709,4 @@ class MigrateCommand extends Command
 
         return true;
     }
-
 }

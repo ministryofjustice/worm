@@ -61,4 +61,3 @@ $sites = [
 ];
 
 $container->instance('sites', $sites);
-
