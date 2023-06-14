@@ -13,14 +13,14 @@ class MigrateCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'migrate { source : Environment you are migrating from. } { target : Environment you are migrating to: prod, staging, dev, demo & local. }';
+    protected $signature = 'migrate { source : Env you are migrating from. } { target : Env you are migrating to, prod, staging, dev, demo & local. }';
 
     /**
      * The description of the command.
      *
      * @var string
      */
-    protected $description = 'Migrate site(s) from one environment to another, prod, staging, dev, demo';
+    protected $description = 'Migrate site(s) from one environment to another, prod, staging, dev, demo & local';
 
     /**
      * The source environment.
