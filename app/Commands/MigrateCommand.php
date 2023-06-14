@@ -156,7 +156,7 @@ class MigrateCommand extends Command
         // Check that Docker is running locally
         !$this->isDockerRunning() ? $this->info("Docker is not running on the local computer.") : null;
 
-        $this->info("🐛 Starting migration $this->source => local machine.");
+        $this->info("🐛 Starting migration " . ucfirst($this->source) . " => Local machine");
 
         // Step 1: Export SQL from RDS to pod container
         !$this->exportSqlFileToWpContainer($source, $sqlFile) ? exit(1) : null;
@@ -191,7 +191,7 @@ class MigrateCommand extends Command
         $this->syncS3BucketToLocal($source, $path);
 
         // Migration completed successfully
-        $this->info("Success 🐛=>🐛. " . ucfirst($source) . " has been migrated to " . ucfirst($target) . ".");
+        $this->info("Success 🐛=>🐛. " . ucfirst($source) . " has been migrated to " . ucfirst($target));
     }
 
     /**
@@ -212,7 +212,7 @@ class MigrateCommand extends Command
         array $sites,
         string $path
     ): void {
-        $this->info("🐛 Starting migration $this->source => $this->target.");
+        $this->info("🐛 Starting migration " . ucfirst($this->source) . " => " . ucfirst($this->target));
 
         // Step 1: Export SQL from RDS to pod container
         !$this->exportSqlFileToWpContainer($source, $sqlFile) ? exit(1) : null;
@@ -238,9 +238,9 @@ class MigrateCommand extends Command
         // Step 8: Rewrite URLs to match the target environment
         !$this->replaceDatabaseURLs($target) ? exit(1) : null;
 
-        // Step 9: Perform additional domain rewrite for production source environments
+        // Step 9: Perform additional domain rewrite for production => non-prod environments
         if (in_array($this->source, ['prod'])) {
-            !$this->productionDatabaseDomainRewrite($target, $sites) ? exit(1) : null;
+            $this->productionDatabaseDomainRewrite($target, $sites);
         }
 
         // Step 10: Update s3 bucket media assets, docs, images, etc. with the target environment
@@ -480,12 +480,12 @@ class MigrateCommand extends Command
             $domain = $site['domain'];
             $sitePath = $site['path'];
             $siteID = $site['blogID'];
-            $domainPath = "https://hale-platform-$this->source.apps.live.cloud-platform.service.justice.gov.uk/$sitePath";
+            $domainPath = "https://hale-platform-$this->target.apps.live.cloud-platform.service.justice.gov.uk/$sitePath";
 
             if ($this->target === 'local') {
                 $newDomainPath = "hale.docker";
             } else {
-                $newDomainPath = "hale-platform-$envName.apps.live.cloud-platform.service.justice.gov.uk";
+                $newDomainPath = "hale-platform-$this->target.apps.live.cloud-platform.service.justice.gov.uk";
             }
 
             $this->info($domain);
