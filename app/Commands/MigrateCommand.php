@@ -13,7 +13,7 @@ class MigrateCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'migrate { source : Env you are migrating from. } { target : Env you are migrating to, prod, staging, dev, demo & local. }';
+    protected $signature = 'migrate { source : Env you are migrating from. } { target : Env you are migrating to, prod, staging, dev, demo & local. } {--blogID= : blog id}';
 
     /**
      * The description of the command.
@@ -86,22 +86,46 @@ class MigrateCommand extends Command
     protected $sites;
 
     /**
+     * Blog ID.
+     *
+     * @var string|null
+     */
+    protected $blogID;
+
+    /**
+     * Single Site SQL file name
+     *
+     * @var string|null
+     */
+    protected $sqlFileSingleSite;
+
+    /**
      * Execute the console command.
      *
      * @return mixed
      */
     public function handle()
     {
+        // Command imputs
         $this->source = $this->argument('source');
         $this->target = $this->argument('target');
+        $this->blogID = is_numeric($this->option('blogID')) ? $this->option('blogID') : 0;
 
-        // Get source environment namespace
+        // Set namespace and file naming
         $this->sourceNamespace = "hale-platform-$this->source";
-        $this->sqlFile = $this->sourceNamespace . '-' . date("Y-m-d-H-i-s") . '.sql';
+
+        // temp db file created it ID
+        // keep for debugging purposes
+        if ($this->blogID !== null) {
+            $this->sqlFile = $this->sourceNamespace . '-site' . $this->blogID . '-' . date("Y-m-d-H-i-s") . '.sql';
+        } else {
+            $this->sqlFile = $this->sourceNamespace . '-' . date("Y-m-d-H-i-s") . '.sql';
+        }
+
         $this->path = rtrim(shell_exec('pwd'));
         $this->profile = "$this->sourceNamespace-s3";
 
-        // Hardcoded site list of production domains
+        // SSOT hardcoded list of production domains
         // List can be updated in the SiteList.php
         $container = Container::getInstance();
         $this->sites = $container->get('sites');
@@ -136,7 +160,8 @@ class MigrateCommand extends Command
                 $this->sqlFile,
                 $this->target,
                 $this->sites,
-                $this->path
+                $this->path,
+                $this->blogID
             );
             return;
         }
@@ -164,7 +189,7 @@ class MigrateCommand extends Command
 
         $this->info("🐛 Starting migration " . ucfirst($this->source) . " => Local machine");
 
-        // Step 1: Export SQL from RDS to pod container
+        // Step 1: Export entire multisite DB from RDS to pod container
         !$this->exportSqlFileToWpContainer($source, $sqlFile) ? exit(1) : null;
 
         // Step 2: Copy SQL file from the container to the local machine
@@ -215,13 +240,19 @@ class MigrateCommand extends Command
         string $sqlFile,
         string $target,
         array $sites,
-        string $path
+        string $path,
+        ?int $blogID
     ): void {
         $this->info("🐛 Starting migration " . ucfirst($this->source) . " => " . ucfirst($this->target));
 
-        // Step 1: Export SQL from RDS to pod container
-        !$this->exportSqlFileToWpContainer($source, $sqlFile) ? exit(1) : null;
-
+        // Single site 
+        if ($blogID != null) {
+            $this->exportSingleSiteDatabase($source, $blogID);
+        } else {
+            // Step 1: Export SQL from RDS to pod container
+            !$this->exportSqlFileToWpContainer($source, $sqlFile) ? exit(1) : null;
+        }
+        
         // Step 2: Copy SQL file from the container to the local machine
         !$this->copySqlFileToLocal($source, $sqlFile) ? exit(1) : null;
 
@@ -241,7 +272,7 @@ class MigrateCommand extends Command
         !$this->deleteSqlFileFromContainer($target, $sqlFile) ? exit(1) : null;
 
         // Step 8: Rewrite URLs to match the target environment
-        !$this->replaceDatabaseURLs($target) ? exit(1) : null;
+        !$this->replaceDatabaseURLs($target, $blogID) ? exit(1) : null;
 
         // Step 9: Perform additional domain rewrite for production => non-prod environments
         if (in_array($this->source, ['prod'])) {
@@ -249,7 +280,7 @@ class MigrateCommand extends Command
         }
 
         // Step 10: Update s3 bucket media assets, docs, images, etc. with the target environment
-        $this->syncS3BucketWithTarget($source, $target);
+        $this->syncS3BucketWithTarget($source, $target, $blogID);
 
         // Migration completed successfully
         $this->info("Success 🐛=>🐛. " . ucfirst($source) . " has been migrated to " . ucfirst($target) . ".");
@@ -342,6 +373,28 @@ class MigrateCommand extends Command
         }
 
         return true;
+    }
+
+
+    /**
+     * Export the database tables associated with a single site.
+     *
+     * @param string $siteUrl The URL of the single site.
+     */
+    function exportSingleSiteDatabase($envName, $blogID) {
+
+        $podExec = $this->getPodExecCommand($envName);
+
+        # Get Single Blog Table Names
+        $tableNames = rtrim(shell_exec("$podExec wp db tables 'wp_$blogID*' --all-tables-with-prefix --format=csv"));
+        $tableNames .= ',wp_blogs'; // Include wp_blogs table to bring over site url and path
+
+        if (count(explode(",", $tableNames)) < 10) {
+            $this->info('Not all blog tables found');
+            return;
+        }
+
+        passthru("$podExec wp db export --porcelain $this->sqlFile --tables='$tableNames'");
     }
 
     /**
@@ -448,7 +501,7 @@ class MigrateCommand extends Command
      * @param string $envName The target environment name.
      * @return bool True if the URL replacement is successful; otherwise, false.
      */
-    private function replaceDatabaseURLs($envName)
+    private function replaceDatabaseURLs($envName, $blogID)
     {
         // Define the old and new URLs based on the environment names
         $sourceSiteURL = "hale-platform-$this->source.apps.live.cloud-platform.service.justice.gov.uk";
@@ -520,7 +573,7 @@ class MigrateCommand extends Command
      * @param string $source The source environment representing the name of the source S3 bucket.
      * @param string $target The target environment representing the name of the target S3 bucket.
      */
-    public function syncS3BucketWithTarget($source, $target)
+    public function syncS3BucketWithTarget($source, $target, $blogID)
     {
         $sourceBucketsecretName = $this->getSecretName($source);
         $sourceBucketsecrets = $this->decodeSecrets($source);
@@ -534,7 +587,15 @@ class MigrateCommand extends Command
         $targetBucketjson_secrets = json_decode($targetBucketsecrets, true);
         $targetBucket = $targetBucketjson_secrets['data']['S3_UPLOADS_BUCKET'];
 
-        passthru("aws s3 sync s3://$sourceBucket/uploads s3://$targetBucket/uploads --profile hale-platform-$source-s3 --profile hale-platform-$target-s3 --acl=public-read");
+        if ($blogID != null) {
+            // Sync specific site's media assets
+            $uploadsDir = "uploads/sites/$blogID";
+        } else {
+            // Sync to all sites on multisite
+            $uploadsDir = "uploads";
+        }
+
+        passthru("aws s3 sync s3://$sourceBucket/$uploadsDir s3://$targetBucket/$uploadsDir --profile hale-platform-$source-s3 --profile hale-platform-$target-s3 --acl=public-read");
     }
 
     /**

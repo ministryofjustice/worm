@@ -32,7 +32,7 @@ class SitesCommand extends Command
          $podName = rtrim(shell_exec('kubectl get pods -o=name | grep -m 1 wordpress | sed "s/^.\{4\}//"'));
 
          # Export DB from RDS to container
-         passthru("kubectl exec -it -c wordpress pod/$podName -- wp site list --fields=blog_id,url");
+         passthru("kubectl exec -it -c wordpress pod/$podName -- wp site list --fields=blog_id,domain,path");
     }
 
     /**
