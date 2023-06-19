@@ -34,15 +34,4 @@ class SwitchCommand extends Command
         $this->info('Switched to: ' . $namespace);
         passthru("kubectl get all");
     }
-
-    /**
-     * Define the command's schedule.
-     *
-     * @param  \Illuminate\Console\Scheduling\Schedule  $schedule
-     * @return void
-     */
-    public function schedule(Schedule $schedule): void
-    {
-        // $schedule->command(static::class)->everyMinute();
-    }
 }

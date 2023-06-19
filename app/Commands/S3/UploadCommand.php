@@ -50,15 +50,4 @@ class UploadCommand extends Command
             passthru("aws s3 sync $uploadsPath/sites/$blogID s3://$bucket/uploads/sites/$blogID --profile $profile --acl=public-read");
         }
     }
-
-    /**
-     * Define the command's schedule.
-     *
-     * @param  \Illuminate\Console\Scheduling\Schedule  $schedule
-     * @return void
-     */
-    public function schedule(Schedule $schedule): void
-    {
-        // $schedule->command(static::class)->everyMinute();
-    }
 }

@@ -34,15 +34,4 @@ class ReleasesCommand extends Command
         # Copy database from container to local machine
         passthru("helm history wordpress");
     }
-
-    /**
-     * Define the command's schedule.
-     *
-     * @param  \Illuminate\Console\Scheduling\Schedule  $schedule
-     * @return void
-     */
-    public function schedule(Schedule $schedule): void
-    {
-        // $schedule->command(static::class)->everyMinute();
-    }
 }

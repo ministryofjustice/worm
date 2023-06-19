@@ -375,7 +375,6 @@ class MigrateCommand extends Command
         return true;
     }
 
-
     /**
      * Export the database tables associated with a single site.
      *
