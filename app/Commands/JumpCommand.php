@@ -29,7 +29,6 @@ class JumpCommand extends Command
     public function handle()
     {
         $target = $this->argument('target');
-        $podName = $this->getPodName($target);
 
         // Warn when jumping to prod
         if ($target === 'prod') {
@@ -43,8 +42,13 @@ class JumpCommand extends Command
             }
         }
 
-        # Export DB from RDS to container
-        passthru("kubectl exec -it -n hale-platform-$target -c wordpress pod/$podName -- bash");
+        // Switch between Docker and Kubernetes
+        if ($target === 'local') {
+            passthru("docker exec -it wordpress bash ");
+        } else {
+            $podName = $this->getPodName($target);
+            passthru("kubectl exec -it -n hale-platform-$target -c wordpress pod/$podName -- bash");
+        }
     }
 
     /**

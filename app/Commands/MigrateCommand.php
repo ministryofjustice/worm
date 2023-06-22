@@ -112,7 +112,7 @@ class MigrateCommand extends Command
         $this->source = $this->argument('source');
         $this->target = $this->argument('target');
         $this->blogID = is_numeric($this->option('blogID')) ? $this->option('blogID') : null;
-        $this->keepProdDomain = ($this->option('keepProdDomain') == 'true') ? true : false;
+        $this->keepProdDomain = $this->option('keepProdDomain') ? $this->option('keepProdDomain') : null;
 
         // Set namespace and file naming
         $this->sourceNamespace = "hale-platform-$this->source";
@@ -162,6 +162,7 @@ class MigrateCommand extends Command
                 $this->source,
                 $this->sqlFile,
                 $this->target,
+                $this->sites,
                 $this->path,
                 $this->blogID
             );
@@ -198,58 +199,57 @@ class MigrateCommand extends Command
         string $source,
         string $sqlFile,
         string $target,
+        array $sites,
         string $path,
         ?int $blogID
     ): void {
         // Check that Docker is running locally
         !$this->isDockerRunning() ? $this->info("Docker is not running on the local computer.") : null;
 
+        // Check the local repo has the right folder structure for media items
+        $this->checkWordPressFolderExists($path);
+
         // Add migration specific text
         $typeOfMigration = ($blogID !== null) ? "single site ID:$blogID" : "multisite";
 
         $this->info("🐛 Starting $typeOfMigration migration " . ucfirst($this->source) . " => Local");
 
-        // Single site 
+        // DB export from RDS
         if ($blogID != null) {
             $this->exportSingleSiteDatabase($source, $blogID);
         } else {
-            // Step 1: Export SQL from RDS to pod container
             $this->exportMultisiteDatabase($source, $sqlFile);
         }
 
-        // Step 2: Copy SQL file from the container to the local machine
+        // Copy SQL file from the container to the local machine
         !$this->copySqlFileToLocal($source, $sqlFile) ? exit(1) : null;
 
-        // Step 3: Delete SQL file from the container
+        // Delete SQL file from the container
         !$this->deleteSqlFileFromContainer($source, $sqlFile) ? exit(1) : null;
 
-        // Step 4: Copy SQL file from the local machine to the target container
+        // Copy SQL file from the local machine to the target container
         !$this->copySqlFileToLocalContainer($sqlFile) ? exit(1) : null;
 
-        // Step 5: Copy SQL file from container into local MariaDB database
+        // Copy SQL file from container into local MariaDB database
         $this->importDbIntoLocalMariaDb($sqlFile);
 
-        // Step 6: Delete SQL file from the container
+        // Delete SQL file from the container
         !$this->deleteSqlFileFromContainer($target, $sqlFile) ? exit(1) : null;
 
-        // Step 7: Rewrite URLs to match the local hale.docker URL
+        // Rewrite URLs to match the local hale.docker URL
         !$this->replaceDatabaseURLsLocal() ? exit(1) : null;
 
-        // Step 9: Perform additional domain rewrite for migrations coming from production
-        if (in_array($this->source, ['prod']) || $this->keepProdDomain === false) {
-            !$this->productionDatabaseDomainRewrite($target, $sites) ? exit(1) : null;
+        // Perform additional domain rewrite for migrations coming from production
+        if (in_array($this->source, ['prod']) || $this->keepProdDomain === 'false') {
+            $this->nonProductionDatabaseDomainRewrite($target, $sites, $blogID);
         }
 
         // Perform additional domain rewrite when migrating from non-prod => production
-        if (in_array($target, ['prod']) || $this->keepProdDomain === true) {
+        if (in_array($target, ['prod']) || $this->keepProdDomain === 'true') {
             $this->productionDatabaseDomainRewrite($target, $sites, $blogID);
         }
 
-        // Check the local repo has the right folder structure for media items
-        $this->checkWordPressFolderExists($path);
-
         // Sync remote s3 bucket with local
-
         $this->syncS3BucketToLocal($source, $path, $blogID);
 
         // Migration completed successfully
@@ -282,11 +282,10 @@ class MigrateCommand extends Command
 
         $this->info("Starting $typeOfMigration migration 🐛. " . ucfirst($source) . " => " . ucfirst($target));
 
-        // Single site migration
+        // DB export from RDS
         if ($blogID !== null) {
             $this->exportSingleSiteDatabase($source, $blogID);
         } else {
-            // Step 1: Export SQL from RDS to pod container
             $this->exportMultisiteDatabase($source, $sqlFile);
         }
 
@@ -312,12 +311,12 @@ class MigrateCommand extends Command
         !$this->replaceDatabaseURLs($target, $blogID) ? exit(1) : null;
 
         // Perform additional domain rewrite for production => non-prod environments
-        if (in_array($source, ['prod']) || $this->keepProdDomain === false) {
+        if (in_array($source, ['prod']) || $this->keepProdDomain === 'false') {
             $this->nonProductionDatabaseDomainRewrite($target, $sites, $blogID);
         }
 
         // Perform additional domain rewrite when migrating from non-prod => production
-        if (in_array($target, ['prod']) || $this->keepProdDomain === true) {
+        if (in_array($target, ['prod']) || $this->keepProdDomain === 'true') {
             $this->productionDatabaseDomainRewrite($target, $sites, $blogID);
         }
 
@@ -582,7 +581,7 @@ class MigrateCommand extends Command
     private function nonProductionDatabaseDomainRewrite($env, array $sites, $blogID)
     {
 
-        $this->info("Run domain rewrite to swap prod domain with a non-prod domain.");
+        $nonProdDBDomainRewriteText = "Run domain rewrite to swap prod domain with a non-prod domain.";
 
         $containerExecCommand = $this->getExecCommand($env);
 
@@ -593,15 +592,15 @@ class MigrateCommand extends Command
 
             // Only run the rewrite code once and for the matching single site and finish
             if ($this->blogID !== null && $blogID === $siteID) {
-                $this->performDomainRewriteNonProd($domain, $sitePath, $containerExecCommand, $siteID);
-                return;
+                $this->info($nonProdDBDomainRewriteText);
+                return $this->performDomainRewriteNonProd($domain, $sitePath, $containerExecCommand, $siteID);;
             }
 
             // If we have no blog id being used we are migrating a whole site so loop without restrictions
             if ($this->blogID === null) {
+                $this->info($nonProdDBDomainRewriteText);
                 $this->performDomainRewriteNonProd($domain, $sitePath, $containerExecCommand, $siteID);
-            }
-            
+            }            
         }
     }
 
@@ -690,6 +689,18 @@ class MigrateCommand extends Command
 
         // Change uploads path depending of if single site or whole ms migration
         $uploadsDir = ($blogID != null) ? "uploads/sites/$blogID" : "uploads";
+
+        $oldBucketName = "$sourceBucket.s3.amazonaws.com";
+        $news3Bucket = "hale.docker/hale-help/wp-content/uploads";
+        $newURL = "hale-platform-$this->source.apps.live.cloud-platform.service.justice.gov.uk/hale-help";
+
+        echo $oldBucketName;
+        echo "docker exec -it wordpress wp search-replace $oldBucketName $news3Bucket --url=$newURL --network --precise --skip-columns=guid --report-changed-only --recurse-objects";
+        die();
+
+        # s3 bucket find and replace
+        $this->info('Replace s3 bucket name with target CloudPlatform bucket name');
+        passthru("docker exec -it wordpress wp search-replace $oldBucketName $news3Bucket --url=$newURL --network --precise --skip-columns=guid --report-changed-only --recurse-objects");
 
         $this->info("Sync $source s3 bucket with local uploads directory");
         passthru("aws s3 sync --profile hale-platform-$source-s3 s3://$sourceBucket/$uploadsDir $uploadsPath", $resultCode);
@@ -846,13 +857,12 @@ class MigrateCommand extends Command
     {
         $wordpressPath = $path . "/wordpress";
         $wordpressPathText =
-        'Wordpress installation not found. 
-        Check you are in the root directory of the hale-platform repo and 
-        have already run the site locally, so that a wordpress folder has been generated.';
+        'Wordpress installation not found. Check you are in the root directory of the hale-platform repo and 
+        have already run the site locally.';
 
         if (!is_dir($wordpressPath)) {
             $this->info($wordpressPathText);
-            return false;
+            exit(0);
         }
 
         return true;
@@ -908,12 +918,13 @@ class MigrateCommand extends Command
      */
     private function performDomainRewriteNonProd(string $domain, string $sitePath, string $containerExecCommand, int $siteID)
     {
-        $domainPath = "https://hale-platform-$this->target.apps.live.cloud-platform.service.justice.gov.uk/$sitePath";
-
+        
         if ($this->target === 'local') {
             $newDomainPath = "hale.docker";
+            $domainPath = "https://hale.docker/$sitePath";
         } else {
             $newDomainPath = "hale-platform-$this->target.apps.live.cloud-platform.service.justice.gov.uk";
+            $domainPath = "https://hale-platform-$this->target.apps.live.cloud-platform.service.justice.gov.uk/$sitePath";
         }
 
         $this->info($domain);
