@@ -29,7 +29,14 @@ class SwitchCommand extends Command
     public function handle()
     {
         $target = $this->argument('target');
+
+        if ($target === 'local') {
+            $this->info('You do not need to switch to local, you are already there!');
+            exit(0);
+        }
+
         $namespace = "hale-platform-$target";
+
         passthru("kubectl config set-context --current --namespace=$namespace");
         $this->info('Switched to: ' . $namespace);
         passthru("kubectl get all");
