@@ -651,6 +651,11 @@ class MigrateCommand extends Command
      */
     public function syncS3BucketWithTarget($source, $target, $blogID)
     {
+
+        $containerExecCommand = $this->getExecCommand($target);
+
+        $targetSiteURL = "hale-platform-$target.apps.live.cloud-platform.service.justice.gov.uk";
+
         $sourceBucketsecretName = $this->getSecretName($source);
         $sourceBucketsecrets = $this->decodeSecrets($source);
 
@@ -665,6 +670,9 @@ class MigrateCommand extends Command
 
         // Change uploads path depending of if single site or whole ms migration
         $uploadsDir = ($blogID != null) ? "uploads/sites/$blogID" : "uploads";
+
+        // Replace the s3 bucket name
+        $this->stringReplaceS3BucketName($sourceBucket, $targetBucket, $targetSiteURL, $containerExecCommand);
 
         passthru("aws s3 sync s3://$sourceBucket/$uploadsDir s3://$targetBucket/$uploadsDir --profile hale-platform-$source-s3 --profile hale-platform-$target-s3 --acl=public-read");
     }
@@ -689,18 +697,6 @@ class MigrateCommand extends Command
 
         // Change uploads path depending of if single site or whole ms migration
         $uploadsDir = ($blogID != null) ? "uploads/sites/$blogID" : "uploads";
-
-        $oldBucketName = "$sourceBucket.s3.amazonaws.com";
-        $news3Bucket = "hale.docker/hale-help/wp-content/uploads";
-        $newURL = "hale-platform-$this->source.apps.live.cloud-platform.service.justice.gov.uk/hale-help";
-
-        echo $oldBucketName;
-        echo "docker exec -it wordpress wp search-replace $oldBucketName $news3Bucket --url=$newURL --network --precise --skip-columns=guid --report-changed-only --recurse-objects";
-        die();
-
-        # s3 bucket find and replace
-        $this->info('Replace s3 bucket name with target CloudPlatform bucket name');
-        passthru("docker exec -it wordpress wp search-replace $oldBucketName $news3Bucket --url=$newURL --network --precise --skip-columns=guid --report-changed-only --recurse-objects");
 
         $this->info("Sync $source s3 bucket with local uploads directory");
         passthru("aws s3 sync --profile hale-platform-$source-s3 s3://$sourceBucket/$uploadsDir $uploadsPath", $resultCode);
@@ -945,4 +941,19 @@ class MigrateCommand extends Command
         }
     }
 
+    /**
+     * Replaces one S3 bucket name with the target other s3 bucket name.
+     *
+     * @param string $sourceBucket        The source S3 bucket name.
+     * @param string $targetBucket        The target CloudPlatform bucket name.
+     * @param string $targetSiteURL       The URL of the target site.
+     * @param string $containerExecCommand The command for executing within the container.
+     * @return void
+     */
+    public function stringReplaceS3BucketName($sourceBucket, $targetBucket, $targetSiteURL, $containerExecCommand)
+    {
+        $command = "$containerExecCommand wp search-replace $sourceBucket $targetBucket --url=$targetSiteURL --network --precise --skip-columns=guid --report-changed-only --recurse-objects";
+        $this->info("Run s3 bucket string replace: $sourceBucket => $targetBucket ");
+        passthru($command);
+    }
 }
