@@ -31,6 +31,18 @@ class JumpCommand extends Command
         $target = $this->argument('target');
         $podName = $this->getPodName($target);
 
+        // Warn when jumping to prod
+        if ($target === 'prod') {
+            // Force manual approval prompt you are migrating to prod
+            $proceed = $this->ask("### WARNING ### You are jumping into the prod container. Do you wish to proceed? [n/y]");
+
+            // If not "yes", then exit.
+            if ($proceed != 'yes' && $proceed != 'y') {
+                $this->info("Jump to prod canceled. Exiting task.");
+                exit(0);
+            }
+        }
+
         # Export DB from RDS to container
         passthru("kubectl exec -it -n hale-platform-$target -c wordpress pod/$podName -- bash");
     }
