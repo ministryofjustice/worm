@@ -86,6 +86,23 @@ you are in the correct namespace ie `kubens hale-platform-dev`.
 
 `worm s3:upload <bucket> <profile>`
 
+Migrate command examples:
+
+Migrate entire multisite from staging to demo:
+`worm migrate staging demo`
+
+Migrate single site from staging to demo
+`worm migrate staging demo --blogID=2` (Every site has its own blogID)
+
+Move an entire ms migration from staging to local
+`worm migrate staging local`
+
+Move a single site from staging to demo but change the domain to its production URL. This would move CCRC to demo with the domain ccrc.gov.uk:
+`worm migrate staging demo --blogID=5 --keepProdDomain=true`
+
+To change it back you would run:
+`worm migrate staging demo --blogID=5 --keepProdDomain=false`
+
 ## License
 
 Open-source software licensed under the MIT license.
