@@ -428,7 +428,7 @@ class MigrateCommand extends Command
      *
      * @param string $env The namespace to get the pod name from.
      */
-    function exportSingleSiteDatabase($env, $blogID)
+    private function exportSingleSiteDatabase($env, $blogID)
     {
         $containerExecCommand = $this->getExecCommand($env);
 
