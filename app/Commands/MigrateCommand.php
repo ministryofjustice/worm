@@ -13,8 +13,8 @@ class MigrateCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'migrate { source : Environment you are migrating from } { target : Environment you are migrating to } 
-                            {--blogID= : Blog ID of single site you wish to migrate } 
+    protected $signature = 'migrate { source : Environment you are migrating from } { target : Environment you are migrating to }
+                            {--blogID= : Blog ID of single site you wish to migrate }
                             {--keepProdDomain= : Keep production domain even if migrating to non-prod env (true or false)}';
 
     /**
@@ -335,7 +335,7 @@ class MigrateCommand extends Command
      */
     private function getPodName($env)
     {
-        
+
         // Guard clause, we don't need to get a pod in the local environment
         if ($env === 'local') {
             return;
@@ -553,7 +553,7 @@ class MigrateCommand extends Command
         $containerExecCommand = $this->getExecCommand($env);
 
         if ($this->blogID !== null) {
-            $urlFlag = "--url=$targetSiteURL";
+            $urlFlag = "--url=$targetSiteURL 'wp_$blogID*' --all-tables-with-prefix";
         } else {
             $urlFlag = "--url=$sourceSiteURL";
         }
@@ -593,14 +593,15 @@ class MigrateCommand extends Command
             // Only run the rewrite code once and for the matching single site and finish
             if ($this->blogID !== null && $blogID === $siteID) {
                 $this->info($nonProdDBDomainRewriteText);
-                return $this->performDomainRewriteNonProd($domain, $sitePath, $containerExecCommand, $siteID);;
+                return $this->performDomainRewriteNonProd($domain, $sitePath, $containerExecCommand, $siteID);
+                ;
             }
 
             // If we have no blog id being used we are migrating a whole site so loop without restrictions
             if ($this->blogID === null) {
                 $this->info($nonProdDBDomainRewriteText);
                 $this->performDomainRewriteNonProd($domain, $sitePath, $containerExecCommand, $siteID);
-            }            
+            }
         }
     }
 
@@ -608,7 +609,7 @@ class MigrateCommand extends Command
      * Perform domain rewrite when migrating from a non-prod => prod environment
      * For example:
      * hale-platform-$this->target.apps.live.cloud-platform.service.justice.gov.uk/ccrc -> ccrc.gov.uk
-     * 
+     *
      * @param string $env The target environment name.
      * @param array $sites The array of site details.
      * @return void
@@ -853,7 +854,7 @@ class MigrateCommand extends Command
     {
         $wordpressPath = $path . "/wordpress";
         $wordpressPathText =
-        'Wordpress installation not found. Check you are in the root directory of the hale-platform repo and 
+        'Wordpress installation not found. Check you are in the root directory of the hale-platform repo and
         have already run the site locally.';
 
         if (!is_dir($wordpressPath)) {
@@ -898,7 +899,14 @@ class MigrateCommand extends Command
 
         $this->info($domain);
 
-        passthru("$containerExecCommand wp search-replace --url=$domainPath --network --skip-columns=guid --report-changed-only '$domainPath' 'https://$domain'");
+         // Search and replace only on the correct URL and blog ID if is single site migration
+        if ($this->blogID !== null) {
+            $urlFlag = "--url=$domainPath 'wp_$blogID*' --all-tables-with-prefix";
+        } else {
+            $urlFlag = "--url=$domainPath";
+        }
+
+        passthru("$containerExecCommand wp search-replace $urlFlag --network --skip-columns=guid --report-changed-only '$domainPath' 'https://$domain'");
         passthru("$containerExecCommand wp db query 'UPDATE wp_blogs SET domain=\"$domain\" WHERE wp_blogs.blog_id=$siteID'");
         passthru("$containerExecCommand wp db query 'UPDATE wp_blogs SET path=\"/\" WHERE wp_blogs.blog_id=$siteID'");
     }
@@ -914,7 +922,7 @@ class MigrateCommand extends Command
      */
     private function performDomainRewriteNonProd(string $domain, string $sitePath, string $containerExecCommand, int $siteID)
     {
-        
+
         if ($this->target === 'local') {
             $newDomainPath = "hale.docker";
             $domainPath = "https://hale.docker/$sitePath";
@@ -925,7 +933,14 @@ class MigrateCommand extends Command
 
         $this->info($domain);
 
-        passthru("$containerExecCommand wp search-replace --url=$domain --network --skip-columns=guid --report-changed-only 'https://$domain' '$domainPath'");
+        // Search and replace only on the correct URL and blog ID if is single site migration
+        if ($this->blogID !== null) {
+            $urlFlag = "--url=$domain 'wp_$blogID*' --all-tables-with-prefix";
+        } else {
+            $urlFlag = "--url=$domain";
+        }
+
+        passthru("$containerExecCommand wp search-replace $urlFlag --network --skip-columns=guid --report-changed-only 'https://$domain' '$domainPath'");
         passthru("$containerExecCommand wp db query 'UPDATE wp_blogs SET domain=\"$newDomainPath\" WHERE wp_blogs.blog_id=$siteID'");
         passthru("$containerExecCommand wp db query 'UPDATE wp_blogs SET path=\"/$sitePath/\" WHERE wp_blogs.blog_id=$siteID'");
 
@@ -933,8 +948,8 @@ class MigrateCommand extends Command
         if ($this->target === 'local') {
             // Security measure: Deactivate the "wp-force-login" plugin for all sites in non-prod environments
             passthru("$containerExecCommand wp plugin deactivate wp-force-login --url=$domainPath");
-        } 
-        
+        }
+
         if ($this->target !== 'local' || $this->target !== 'prod') {
             // Security measure: Activate the "wp-force-login" plugin for all sites in non-prod environments
             passthru("$containerExecCommand wp plugin activate wp-force-login --url=$domainPath");
