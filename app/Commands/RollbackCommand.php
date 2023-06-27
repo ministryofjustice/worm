@@ -5,21 +5,21 @@ namespace App\Commands;
 use Illuminate\Console\Scheduling\Schedule;
 use LaravelZero\Framework\Commands\Command;
 
-class ListReleases extends Command
+class RollbackCommand extends Command
 {
     /**
      * The signature of the command.
      *
      * @var string
      */
-    protected $signature = 'listReleases';
+    protected $signature = 'rollback {--revision= : revision number}';
 
     /**
      * The description of the command.
      *
      * @var string
      */
-    protected $description = 'Displays release history of the wordpress container';
+    protected $description = 'Rollbacks wordpress container to a revision. Default is to previous revision';
 
     /**
      * Execute the console command.
@@ -28,11 +28,20 @@ class ListReleases extends Command
      */
     public function handle()
     {
+
+        $revisionNum = ($this->option('revision') != null && is_numeric($this->option('revision')) ? $this->option('revision') : '');
+
         $namespace = shell_exec('kubectl config view --minify -o jsonpath="{..namespace}"');
+
         $this->info("Your current namespace: " . $namespace);
 
-        # Copy database from container to local machine
-        passthru("helm history wordpress");
+        $proceed = $this->ask('Do you wish to proceed?');
+
+        if ($proceed != 'yes' && $proceed != 'y') {
+            return;
+        }
+
+        passthru("helm rollback wordpress $revisionNum");
     }
 
     /**

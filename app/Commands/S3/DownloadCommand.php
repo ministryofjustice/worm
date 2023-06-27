@@ -50,15 +50,4 @@ class DownloadCommand extends Command
             passthru("aws s3 sync s3://$bucket/uploads/sites/$blogID $uploadsPath/uploads/sites/$blogID --profile $profile");
         }
     }
-
-    /*
-     * Define the command's schedule.
-     *
-     * @param  \Illuminate\Console\Scheduling\Schedule  $schedule
-     * @return void
-     */
-    public function schedule(Schedule $schedule): void
-    {
-        // $schedule->command(static::class)->everyMinute();
-    }
 }

@@ -80,6 +80,12 @@ class ImportCommand extends Command
                 "domain" => "imb.org.uk",
                 "path" => "imb",
             ],
+
+            "icr" => [
+                "blogID" => 16,
+                "domain" => "icrir.independent-inquiry.uk",
+                "path" => "icrir",
+            ],
         );
 
         # Check we have an sql file before we even get going
@@ -294,15 +300,5 @@ class ImportCommand extends Command
             passthru("$podExec wp plugin activate wp-force-login --url=$domainPath");
         }
         $this->info('Import script finished.');
-    }
-    /**
-     * Define the command's schedule.
-     *
-     * @param  \Illuminate\Console\Scheduling\Schedule  $schedule
-     * @return void
-     */
-    public function schedule(Schedule $schedule): void
-    {
-        // $schedule->command(static::class)->everyMinute();
     }
 }

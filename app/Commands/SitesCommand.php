@@ -5,21 +5,21 @@ namespace App\Commands;
 use Illuminate\Console\Scheduling\Schedule;
 use LaravelZero\Framework\Commands\Command;
 
-class ListSites extends Command
+class SitesCommand extends Command
 {
     /**
      * The signature of the command.
      *
      * @var string
      */
-    protected $signature = 'listSites';
+    protected $signature = 'sites';
 
     /**
      * The description of the command.
      *
      * @var string
      */
-    protected $description = 'Command description';
+    protected $description = 'List all sites in the multisite installation.';
 
     /**
      * Execute the console command.
@@ -32,7 +32,7 @@ class ListSites extends Command
          $podName = rtrim(shell_exec('kubectl get pods -o=name | grep -m 1 wordpress | sed "s/^.\{4\}//"'));
 
          # Export DB from RDS to container
-         passthru("kubectl exec -it -c wordpress pod/$podName -- wp site list --fields=blog_id,url");
+         passthru("kubectl exec -it -c wordpress pod/$podName -- wp site list --fields=blog_id,domain,path");
     }
 
     /**
