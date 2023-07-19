@@ -718,7 +718,7 @@ class MigrateCommand extends Command
 
         $podName = $this->getPodName($env);
 
-        $command = "kubectl describe -n hale-platform-$env pods/$podName | grep -o 'wpsecrets-[[:digit:]]*'";
+        $command = "kubectl describe -n hale-platform-$env pods/$podName | grep -o 'hale-wp-secrets-[[:digit:]]*'";
         $output = shell_exec($command);
 
         return rtrim($output);
