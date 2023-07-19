@@ -18,7 +18,7 @@ WORM targets the following environments, `Local`, `Demo`, `Dev`, `Staging` & `Pr
 * Download database or media assets from any environment.
 * Upload database or media assets from any environment.
 * Check WordPress sites installed on multisite and their blog ids.
-* Display wpsecrets `worm status --secrets`
+* Display secrets `worm status --secrets`
 * Display list of sites on multisite cluster `worm listSites`
 * Setup AWS Profiles for s3, rds and ecr list for current namespace `worm setup:createProfiles`
 * Migrate - `worm migrate <source> <target>` will move the database and s3
