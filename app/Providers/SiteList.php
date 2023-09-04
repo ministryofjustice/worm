@@ -58,6 +58,12 @@ $sites = [
         "domain" => "icrir.independent-inquiry.uk",
         "path" => "icrir",
     ],
-];
 
-$container->instance('sites', $sites);
+    "brh" => [
+        "blogID" => 29,
+        "domain" => "brookhouseinquiry.org.uk",
+        "path" => "brookhouse",
+    ],
+    ];
+
+    $container->instance('sites', $sites);
