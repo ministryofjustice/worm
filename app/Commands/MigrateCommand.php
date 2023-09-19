@@ -655,7 +655,7 @@ class MigrateCommand extends Command
     {
 
         $containerExecCommand = $this->getExecCommand($target);
-        $servicePodName = "pod/cloud-platform-f383f35fb1767060-service-pod-5947fdbcb9-ljvks";
+        $servicePodName = $this->getServicePodName($source);
 
         $targetSiteURL = "hale-platform-$target.apps.live.cloud-platform.service.justice.gov.uk";
 
@@ -676,9 +676,6 @@ class MigrateCommand extends Command
 
         // Replace the s3 bucket name
         $this->stringReplaceS3BucketName($sourceBucket, $targetBucket, $targetSiteURL, $containerExecCommand);
-
-        // $x = "kubectl exec -it -n hale-platform-$source $servicePodName -- bin/sh -c \"aws s3 sync s3://$sourceBucket/$uploadsDir s3://$targetBucket/$uploadsDir --acl=public-read\"";
-        // echo $x; die();
 
         passthru("kubectl exec -it -n hale-platform-$source $servicePodName -- bin/sh -c \"aws s3 sync s3://$sourceBucket/$uploadsDir s3://$targetBucket/$uploadsDir --acl=public-read\"");
     }
