@@ -822,7 +822,7 @@ class MigrateCommand extends Command
         $targetSiteURL = "hale.docker";
 
         if ($this->blogID !== null) {
-            $urlFlag = "--url=$domainPath 'wp_{$siteID}_*' --all-tables-with-prefix";
+            $urlFlag = "--url=$domainPath 'wp_{$this->blogID}_*' --all-tables-with-prefix";
         } else {
             $urlFlag = "--url=$sourceSiteURL";
         }
