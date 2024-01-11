@@ -897,12 +897,20 @@ class MigrateCommand extends Command
 
          // Search and replace only on the correct URL and blog ID if is single site migration
         if ($this->blogID !== null) {
-            $urlFlag = "--url=$domainPath 'wp_{$siteID}_*' --all-tables-with-prefix";
+
+            // Handles whether you are migrating to a domain on prod or the hale-platform infrastructure domain
+            // as we can have both types on production.
+            if ($domain !== null) {
+                $urlFlag = "--url=$domain 'wp_{$siteID}_*' --all-tables-with-prefix";
+            } else {
+                $urlFlag = "--url=$domainPath 'wp_{$siteID}_*' --all-tables-with-prefix";
+            }
+            
         } else {
             $urlFlag = "--url=$domainPath";
         }
 
-        passthru("$containerExecCommand wp search-replace $urlFlag --network --skip-columns=guid --report-changed-only '$domainPath' 'https://$domain'");
+        passthru("$containerExecCommand wp search-replace '$domainPath' 'https://$domain' $urlFlag --network --skip-columns=guid --report-changed-only");
         passthru("$containerExecCommand wp db query 'UPDATE wp_blogs SET domain=\"$domain\" WHERE wp_blogs.blog_id=$siteID'");
         passthru("$containerExecCommand wp db query 'UPDATE wp_blogs SET path=\"/\" WHERE wp_blogs.blog_id=$siteID'");
     }
@@ -936,7 +944,7 @@ class MigrateCommand extends Command
             $urlFlag = "--url=$domain";
         }
 
-        passthru("$containerExecCommand wp search-replace $urlFlag --network --skip-columns=guid --report-changed-only 'https://$domain' '$domainPath'");
+        passthru("$containerExecCommand wp search-replace 'https://$domain' '$domainPath' $urlFlag --network --skip-columns=guid --report-changed-only");
         passthru("$containerExecCommand wp db query 'UPDATE wp_blogs SET domain=\"$newDomainPath\" WHERE wp_blogs.blog_id=$siteID'");
         passthru("$containerExecCommand wp db query 'UPDATE wp_blogs SET path=\"/$sitePath/\" WHERE wp_blogs.blog_id=$siteID'");
 
