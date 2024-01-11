@@ -448,7 +448,7 @@ class MigrateCommand extends Command
         $containerExecCommand = $this->getExecCommand($env);
 
         # Get Single Blog Table Names
-        $tableNames = rtrim(shell_exec("$containerExecCommand wp db tables 'wp_$blogID*' --all-tables-with-prefix --format=csv"));
+        $tableNames = rtrim(shell_exec("$containerExecCommand wp db tables 'wp_{$blogID}_*' --all-tables-with-prefix --format=csv"));
 
         if (count(explode(",", $tableNames)) < 10) {
             $this->info('Not all blog tables found');
@@ -559,7 +559,7 @@ class MigrateCommand extends Command
         $containerExecCommand = $this->getExecCommand($env);
 
         if ($this->blogID !== null) {
-            $urlFlag = "--url=$targetSiteURL 'wp_{$blogID}_*' --all-tables-with-prefix --dry-run";
+            $urlFlag = "--url=$targetSiteURL 'wp_{$blogID}_*' --all-tables-with-prefix";
         } else {
             $urlFlag = "--url=$sourceSiteURL";
         }
@@ -822,7 +822,7 @@ class MigrateCommand extends Command
         $targetSiteURL = "hale.docker";
 
         if ($this->blogID !== null) {
-            $urlFlag = "--url=$targetSiteURL";
+            $urlFlag = "--url=$domainPath 'wp_{$siteID}_*' --all-tables-with-prefix";
         } else {
             $urlFlag = "--url=$sourceSiteURL";
         }
@@ -895,7 +895,7 @@ class MigrateCommand extends Command
 
          // Search and replace only on the correct URL and blog ID if is single site migration
         if ($this->blogID !== null) {
-            $urlFlag = "--url=$domainPath 'wp_$siteID*' --all-tables-with-prefix";
+            $urlFlag = "--url=$domainPath 'wp_{$siteID}_*' --all-tables-with-prefix";
         } else {
             $urlFlag = "--url=$domainPath";
         }
@@ -963,7 +963,7 @@ class MigrateCommand extends Command
     {
 
         if ($this->blogID !== null) {
-            $urlFlag = "--url=$targetSiteURL 'wp_{$blogID}_*' --all-tables-with-prefix --dry-run";
+            $urlFlag = "--url=$targetSiteURL 'wp_{$blogID}_*' --all-tables-with-prefix";
         } else {
             $urlFlag = "--url=$sourceSiteURL";
         }
