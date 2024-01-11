@@ -677,6 +677,8 @@ class MigrateCommand extends Command
         // Replace the s3 bucket name
         $this->stringReplaceS3BucketName($sourceBucket, $targetBucket, $targetSiteURL, $containerExecCommand, $blogID);
 
+        $this->info('=> AWS s3 bucket sync');
+
         passthru("kubectl exec -it -n hale-platform-$source $servicePodName -- bin/sh -c \"aws s3 sync s3://$sourceBucket/$uploadsDir s3://$targetBucket/$uploadsDir --acl=public-read\"");
     }
 
