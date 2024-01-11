@@ -971,7 +971,7 @@ class MigrateCommand extends Command
         }
 
         $command = "$containerExecCommand wp search-replace $sourceBucket $targetBucket $urlFlag --network --precise --skip-columns=guid --report-changed-only --recurse-objects";
-        $this->info("Run s3 bucket string replace: $sourceBucket => $targetBucket ");
+        $this->info("Run s3 bucket string replace: $sourceBucket with $targetBucket ");
         passthru($command);
     }
 }
