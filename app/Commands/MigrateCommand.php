@@ -929,7 +929,7 @@ class MigrateCommand extends Command
 
         // Search and replace only on the correct URL and blog ID if is single site migration
         if ($this->blogID !== null) {
-            $urlFlag = "--url=$domain 'wp_$siteID*' --all-tables-with-prefix";
+            $urlFlag = "--url=$domain 'wp_{$siteID}_*' --all-tables-with-prefix";
         } else {
             $urlFlag = "--url=$domain";
         }
