@@ -559,7 +559,7 @@ class MigrateCommand extends Command
         $containerExecCommand = $this->getExecCommand($env);
 
         if ($this->blogID !== null) {
-            $urlFlag = "--url=$targetSiteURL 'wp_$blogID*' --all-tables-with-prefix";
+            $urlFlag = "--url=$targetSiteURL 'wp_{$blogID}_*' --all-tables-with-prefix --dry-run";
         } else {
             $urlFlag = "--url=$sourceSiteURL";
         }
@@ -675,7 +675,7 @@ class MigrateCommand extends Command
         $uploadsDir = ($blogID != null) ? "uploads/sites/$blogID" : "uploads";
 
         // Replace the s3 bucket name
-        $this->stringReplaceS3BucketName($sourceBucket, $targetBucket, $targetSiteURL, $containerExecCommand);
+        $this->stringReplaceS3BucketName($sourceBucket, $targetBucket, $targetSiteURL, $containerExecCommand, $blogID);
 
         passthru("kubectl exec -it -n hale-platform-$source $servicePodName -- bin/sh -c \"aws s3 sync s3://$sourceBucket/$uploadsDir s3://$targetBucket/$uploadsDir --acl=public-read\"");
     }
@@ -959,9 +959,16 @@ class MigrateCommand extends Command
      * @param string $containerExecCommand The command for executing within the container.
      * @return void
      */
-    public function stringReplaceS3BucketName($sourceBucket, $targetBucket, $targetSiteURL, $containerExecCommand)
+    public function stringReplaceS3BucketName($sourceBucket, $targetBucket, $targetSiteURL, $containerExecCommand, $blogID)
     {
-        $command = "$containerExecCommand wp search-replace $sourceBucket $targetBucket --url=$targetSiteURL --network --precise --skip-columns=guid --report-changed-only --recurse-objects";
+
+        if ($this->blogID !== null) {
+            $urlFlag = "--url=$targetSiteURL 'wp_{$blogID}_*' --all-tables-with-prefix --dry-run";
+        } else {
+            $urlFlag = "--url=$sourceSiteURL";
+        }
+
+        $command = "$containerExecCommand wp search-replace $sourceBucket $targetBucket $urlFlag --network --precise --skip-columns=guid --report-changed-only --recurse-objects";
         $this->info("Run s3 bucket string replace: $sourceBucket => $targetBucket ");
         passthru($command);
     }
