@@ -13,7 +13,9 @@ class ExportCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'db:export {--blogID= : blog id}';
+    protected $signature = 'db:export 
+                            {--blogID= : blog id}
+                            { target : Target environment you are exporting DB from }';
 
     /**
      * The description of the command.
@@ -29,7 +31,11 @@ class ExportCommand extends Command
      */
     public function handle()
     {
-        $ExportDatabase = new ExportDatabase();
+        $blogID = $this->option('blogID');
+        $target = $this->argument('target');
+        $sqlfile = 'wordpress';
+
+        $ExportDatabase = new ExportDatabase($target, $sqlfile , $blogID = null);
 
         $ExportDatabase->runExportMultisite();
         
