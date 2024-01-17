@@ -3,10 +3,10 @@
 namespace App\Commands;
 
 use App\Helpers\Kubernetes;
+use App\Helpers\EnvSet;
 
-class ExportDatabase 
+class ExportDatabase
 {
-
     protected $target;
     protected $blogID = null;
     protected $podName;
@@ -14,61 +14,88 @@ class ExportDatabase
     protected $sqlFile;
     protected $kubernetes;
 
-    public function __construct($env, $sqlFile, $blogID = null) {
+    /**
+     * Constructor for the ExportDatabase class.
+     *
+     * @param string $target   The target environment for the export.
+     * @param string $sqlFile  The SQL file name for the export.
+     * @param int|null $blogID Optional blog ID for single-site export. Default is null.
+     *
+     * Initializes the ExportDatabase instance with the target environment, SQL file name,
+     * and an optional blog ID. It sets up Kubernetes-related properties like pod name and
+     * container execution command for subsequent export operations.
+     */
+    public function __construct($target, $sqlFile, $blogID = null)
+    {
         $this->blogID = $blogID;
         $this->sqlFile = $sqlFile;
-
-        $this->kubernetes = new Kubernetes($env);
-        $this->podName = $this->kubernetes->getPodName($env,"wordpress");
-        $this->containerExec = $this->kubernetes->getExecCommand($env);
-    }    
-
-    public function runExportMultisite() {
-        var_dump("$this->containerExec wp db export --porcelain $this->sqlFile");
+        $this->target = $target;
+        $this->kubernetes = new Kubernetes($target);
+        $this->podName = $this->kubernetes->getPodName($target, "wordpress");
+        $this->containerExec = $this->kubernetes->getExecCommand($target);
     }
 
-    public function runExportSingleSite($blogID) {
+    /**
+     * Run the export operation for WP multisite.
+     *
+     * Executes the 'wp db export' command in the Kubernetes container, exporting the entire
+     * multisite database to the specified SQL file format.
+     */
+    public function runExportMultisite()
+    {
+        $sqlFile = $this->sqlFile;
+        $containerExec = $this->containerExec;
+        $target = $this->target;
+        $podName = $this->podName;
 
+        passthru("$containerExec wp db export --porcelain $sqlFile");
+
+        // Copy database from container to local machine
+        passthru("kubectl cp hale-platform-$target/$podName:$sqlFile $sqlFile -c wordpress");
+
+        // Delete SQL file in container no longer needed
+        passthru("$containerExec rm $sqlFile");
+    }
+
+    /**
+     * Run the export operation for a single WP site.
+     *
+     * Checks if the specified blog exists, exports the blog's database tables to the specified
+     * SQL file, and transfers the SQL file from the container to the local machine. Deletes
+     * the SQL file in the container after the export is complete.
+     */
+    public function runExportSingleSite()
+    {
         $validBlogID = false;
+        $sqlFile = $this->sqlFile;
+        $blogID = $this->blogID;
+        $containerExec = $this->containerExec;
+        $podName = $this->podName;
+        $target = $this->target;
 
-        if (is_numeric($blogID)) {
-            # Check Site Exists
-            $siteCheck = rtrim(shell_exec("$podExec wp site list --site__in=$blogID --field=blog_id --format=csv"));
+        $envSetObject = new EnvSet();
+        $blogExists = $envSetObject->checkSiteExists($target, $blogID);
 
-            if (empty($siteCheck)) {
-                echo'Site not found';
-                return;
-            }
-
-            $validBlogID = true;
+        if (!$blogExists) {
+            echo 'Blog with ID ' . $blogID . ' not found during export of single site.' . PHP_EOL;
+            return;
         }
 
-        if ($validBlogID) {
-            $sqlFile = EnvSet::GenerateFileName('staging', '3');
+        // Get Single Blog Table Names
+        $tableNames = rtrim(shell_exec("$containerExec wp db tables 'wp_{$blogID}*' --all-tables-with-prefix --format=csv"));
 
-            # Get Single Blog Table Names
-            $tableNames = rtrim(shell_exec("$podExec wp db tables 'wp_{$blogID}*' --all-tables-with-prefix --format=csv"));
-
-            if (count(explode(",", $tableNames)) < 10) {
-                $this->info('Not all blog tables found');
-                return;
-            }
-
-            # Export Single Blog from RDS to container
-            passthru("$podExec wp db export --porcelain $sqlFile --tables='$tableNames'");
-        } else {
-            $sqlFile = $namespace . '-' . date("Y-m-d-H-i-s") . '.sql';
-
-            # Export DB from RDS to container
-            passthru("$podExec wp db export --porcelain $sqlFile");
+        if (count(explode(",", $tableNames)) < 10) {
+            $this->info('Not all blog tables found');
+            return;
         }
 
-        # Copy database from container to local machine
-        passthru("kubectl cp $namespace/$podName:$sqlFile $sqlFile -c wordpress");
+        // Export Single Blog from RDS to container
+        passthru("$containerExec wp db export --porcelain $sqlFile --tables='$tableNames'");
 
-        # Delete SQL file in container no longer needed
-        passthru("$podExec rm $sqlFile");
+        // Copy database from container to local machine
+        passthru("kubectl cp hale-platform-$target/$podName:$sqlFile $sqlFile -c wordpress");
 
-
+        // Delete SQL file in container no longer needed
+        passthru("$containerExec rm $sqlFile");
     }
 }
