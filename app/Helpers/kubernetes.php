@@ -62,4 +62,18 @@ class Kubernetes
 
         return "kubectl exec -it -n hale-platform-$env -c wordpress pod/$podName --";
     }
+
+    /**
+     * Copy the database from the Kubernetes container to the local machine.
+     *
+     * @param string $target      The target environment.
+     * @param string $podName     The name of the Kubernetes pod.
+     * @param string $sqlFile     The SQL file to be copied.
+     * @param string $container   The container name within the pod.
+     */
+    public function copyDatabaseToLocal($target, $podName, $sqlFile, $container = 'wordpress')
+    {
+        $command = "kubectl cp --retries=10 -n hale-platform-$target -c $container $podName:$sqlFile $sqlFile";
+        passthru($command);
+    }
 }

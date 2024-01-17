@@ -50,8 +50,8 @@ class ExportDatabase
 
         passthru("$containerExec wp db export --porcelain $sqlFile");
 
-        // Copy database from container to local machine
-        passthru("kubectl cp hale-platform-$target/$podName:$sqlFile $sqlFile -c wordpress");
+        $kubernetesObject = new Kubernetes();
+        $kubernetesObject->copyDatabaseToLocal($target, $podName, $sqlFile, $container = 'wordpress');
 
         // Delete SQL file in container no longer needed
         passthru("$containerExec rm $sqlFile");
@@ -72,7 +72,6 @@ class ExportDatabase
         $containerExec = $this->containerExec;
         $podName = $this->podName;
         $target = $this->target;
-
         $envSetObject = new EnvSet();
         $blogExists = $envSetObject->checkSiteExists($target, $blogID);
 
@@ -82,7 +81,7 @@ class ExportDatabase
         }
 
         // Get Single Blog Table Names
-        $tableNames = rtrim(shell_exec("$containerExec wp db tables 'wp_{$blogID}*' --all-tables-with-prefix --format=csv"));
+        $tableNames = rtrim(shell_exec("$containerExec wp db tables 'wp_{$blogID}_*' --all-tables-with-prefix --format=csv"));
 
         if (count(explode(",", $tableNames)) < 10) {
             $this->info('Not all blog tables found');
@@ -92,8 +91,8 @@ class ExportDatabase
         // Export Single Blog from RDS to container
         passthru("$containerExec wp db export --porcelain $sqlFile --tables='$tableNames'");
 
-        // Copy database from container to local machine
-        passthru("kubectl cp hale-platform-$target/$podName:$sqlFile $sqlFile -c wordpress");
+        $kubernetesObject = new Kubernetes();
+        $kubernetesObject->copyDatabaseToLocal($target, $podName, $sqlFile, $container = 'wordpress');
 
         // Delete SQL file in container no longer needed
         passthru("$containerExec rm $sqlFile");
