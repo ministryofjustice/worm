@@ -43,7 +43,7 @@ class EnvSet
      */
     public function checkSiteExists($target, $blogID)
     {
-        $kubernetesObject = new Kubernetes($target);
+        $kubernetesObject = new Kubernetes();
         $containerExec = $kubernetesObject->getExecCommand($target);
 
         if (is_numeric($blogID)) {
