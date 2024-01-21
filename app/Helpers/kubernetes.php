@@ -76,4 +76,16 @@ class Kubernetes
         $command = "kubectl cp --retries=10 -n hale-platform-$target -c $container $podName:$sqlFile $sqlFile";
         passthru($command);
     }
+
+    /**
+     * Copy the database to the Kubernetes container running in the target environment.
+     *
+     */
+    public function copyDatabaseToContainer($target, $podName, $sqlFilePath, $container = 'wordpress')
+    {
+        $command = passthru("kubectl cp --retries=10 -n hale-platform-$target -c $container $sqlFile hale-platform-$target/$podName:$sqlFile");
+        
+        var_dump($command); die();
+        //passthru($command);
+    }
 }
