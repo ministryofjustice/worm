@@ -2,10 +2,14 @@
 
 namespace App\Helpers;
 
+use LaravelZero\Framework\Commands\Command;
+
 use App\Helpers\Kubernetes;
+use Illuminate\Container\Container;
 
 class EnvSet
 {
+
     /**
      * Generate a unique SQL file name based on the environment and optional blog ID.
      *
@@ -55,5 +59,99 @@ class EnvSet
         }
 
         return false;
+    }
+
+    /**
+     * Check if the file exists locally and is of right format.
+     *
+     * This method checks whether the SQL file exists
+     *
+     * @param string $path The path of the file.
+     * @return bool True if the file exists; otherwise, false.
+     */
+    public function checkSQLfileIsValid($file)
+    {
+
+        if (!$this->isSqlFile($file)) {
+            echo 'File is not an SQL file type.' . PHP_EOL;
+            exit(0);
+        }
+
+        $wordpressPathText =
+            'File not found.' . PHP_EOL;
+
+        if (!file_exists($file)) {
+            echo $wordpressPathText;
+            exit(0);
+        }
+
+        return true;
+    }
+
+    /**
+     * Check if a file is an SQL file.
+     *
+     * This function checks if the given file has a ".sql" extension, indicating that it is likely
+     * an SQL file.
+     *
+     * @param string $filePath The path to the file.
+     *
+     * @return bool True if the file has a ".sql" extension; otherwise, false.
+     */
+    private function isSqlFile($filePath)
+    {
+        $fileExtension = pathinfo($filePath, PATHINFO_EXTENSION);
+        return strtolower($fileExtension) === 'sql';
+    }
+
+    public function getDomain($target, $blogID = null) 
+    {
+        // SSOT hardcoded list of production domains
+        // List can be updated in the SiteList.php
+        $container = Container::getInstance();
+        $sites = $container->get('sites');
+
+        $target = strtolower($target);
+
+        if ($target == 'prod') {
+            foreach ($sites as $site) {
+                $domain = $site['domain'];
+                $sitePath = $site['path'];
+                $siteID = $site['blogID'];
+    
+                if ($blogID == $siteID) {
+                    return $domain;
+                } else {
+                    return "hale-platform-prod.apps.live.cloud-platform.service.justice.gov.uk/$sitePath";
+                }
+            }
+        }
+
+
+        return "hale-platform-$target.apps.live.cloud-platform.service.justice.gov.uk";
+
+
+        // $kubernetesObject = new Kubernetes();
+        // $slug = $kubernetesObject->getSiteSlugByBlogId($target, $blogID);
+
+        //return "hale-platform-$target.apps.live.cloud-platform.service.justice.gov.uk/$slug";
+
+    }
+
+    public function extractFileNameEnvironment($fileName) {
+
+        $possibleEnvironments = ['dev', 'prod', 'staging', 'demo', 'local'];
+
+        // Generate the regex pattern dynamically based on possible environments
+        $pattern = '/hale-platform-(' . implode('|', $possibleEnvironments) . ')/';
+
+        // Perform regex match
+        if (preg_match($pattern, $fileName, $matches)) {
+            // $matches[1] will contain the environment word
+            return $matches[1];
+        }
+
+        // Return null if no match
+        return null;
     }
 }

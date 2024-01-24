@@ -4,62 +4,78 @@ namespace App\Commands;
 
 use App\Helpers\Kubernetes;
 use App\Helpers\EnvSet;
+use App\Helpers\Wordpress;
 
 class ImportDatabase
 {
     protected $target;
-    protected $blogID = null;
+    protected $source;
+    protected $filePath;
+    protected $fileName;
+    protected $blogID;
+    protected $s3sync;
     protected $podName;
     protected $containerExec;
     protected $kubernetesObject;
-    protected $sqlFilePath;
+    protected $wordpressObject;
 
     /**
-     * Constructor for the ExportDatabase class.
+     * Constructor for the ImportDatabase class.
      *
-     * @param string $target   The target environment for the export.
-     * @param string $sqlFile  The SQL file name for the export.
-     * @param int|null $blogID Optional blog ID for single-site export. Default is null.
+     * @param string $target   The target environment for the import.
+     * @param string $sqlFile  The SQL file name for the import.
+     * @param int|null $blogID Optional blog ID for single-site import. Default is null.
      *
-     * Initializes the ExportDatabase instance with the target environment, SQL file name,
+     * Initializes the ImportDatabase instance with the target environment, SQL file name,
      * and an optional blog ID. It sets up Kubernetes-related properties like pod name and
-     * container execution command for subsequent export operations.
+     * container execution command for subsequent import operations.
      */
-    public function __construct($target, $blogID = null, $sqlFilePath)
+    public function __construct( $target, $source, $filePath, $fileName, $blogID = null, $s3sync = null )
     {
-        $this->blogID = $blogID;
         $this->target = $target;
-        $this->sqlFilePath = $sqlFilePath;
+        $this->source = $source;
+        $this->filePath = $filePath;
+        $this->fileName = $fileName;
+        $this->blogID = $blogID;
+        $this->s3sync = $s3sync;
         $this->kubernetesObject = new Kubernetes();
-        $this->podName = $this->kubernetesObject->getPodName($target, "wordpress");
+        $this->wordpressObject = new Wordpress();
         $this->containerExec = $this->kubernetesObject->getExecCommand($target);
+        $this->podName = $this->kubernetesObject->getPodName($target, "wordpress");
     }
 
     /**
-     * Run the export operation for WP multisite.
+     * Run the import operation for WordPress multisite.
      *
-     * Executes the 'wp db export' command in the Kubernetes container, exporting the entire
-     * multisite database to the specified SQL file format.
+     * Executes the necessary commands and operations to import a multisite database
+     * from a specified SQL file format in a Kubernetes container.
      */
     public function runImportMultisite()
     {
-        $containerExec = $this->containerExec;
-        $target = $this->target;
-        $podName = $this->podName;
-        $sqlFilePath = $this->sqlFilePath;
+        // Copy the SQL file into the Kubernetes container
+        $this->kubernetesObject
+            ->copyDatabaseToContainer($this->target, $this->filePath, $this->fileName, $this->podName);
 
-        // check there is actually a file at the file path given function here
+        // Execute 'wp db import' command in the container
+        $importCommand = "$this->containerExec wp db import $this->fileName";
+        passthru($importCommand);
 
-        $x = $this->kubernetesObject->copyDatabaseToContainer($target, $podName, $sqlFilePath, $container = 'wordpress') ;
+        // Remove the imported SQL file from the container
+        $removeCommand = "$this->containerExec rm $this->fileName";
+        passthru($removeCommand);
 
-        var_dump($x);
-        //passthru("$containerExec wp db import $sqlFile");
+        // Run WP CLI find and replace on database URLs
+        $this->wordpressObject->replaceDatabaseURLs($this->target, $this->source, $this->blogID = null);
 
-        // Delete SQL file in container no longer needed
-        //passthru("$containerExec rm $sqlFile");
+        if ($this->s3sync === 'true') {
+            // Sync S3 buckets between source and target environments
+            $this->kubernetesObject->syncS3Buckets($this->target, $this->source, $this->blogID = null);
 
-
-        die();
+            // Perform string replacement of S3 bucket names in the WordPress installation
+            $targetBucket = $this->kubernetesObject->getBucketName($this->target);
+            $sourceBucket = $this->kubernetesObject->getBucketName($this->source);
+            $this->wordpressObject->stringReplaceS3BucketName($targetBucket, $sourceBucket, $blogID = null);
+        }
     }
 
     /**
@@ -69,36 +85,36 @@ class ImportDatabase
      * SQL file, and transfers the SQL file from the container to the local machine. Deletes
      * the SQL file in the container after the export is complete.
      */
-    public function runExportSingleSite()
+    public function runImportSingleSite()
     {
-        $validBlogID = false;
-        $sqlFile = $this->sqlFile;
-        $blogID = $this->blogID;
-        $containerExec = $this->containerExec;
-        $podName = $this->podName;
-        $target = $this->target;
-        $envSetObject = new EnvSet();
-        $blogExists = $envSetObject->checkSiteExists($target, $blogID);
+        // $validBlogID = false;
+        // $sqlFile = $this->sqlFile;
+        // $blogID = $this->blogID;
+        // $containerExec = $this->containerExec;
+        // $podName = $this->podName;
+        // $target = $this->target;
+        // $envSetObject = new EnvSet();
+        // $blogExists = $envSetObject->checkSiteExists($target, $blogID);
 
-        if (!$blogExists) {
-            echo 'Blog with ID ' . $blogID . ' not found during export of single site.' . PHP_EOL;
-            return;
-        }
+        // if (!$blogExists) {
+        //     echo 'Blog with ID ' . $blogID . ' not found during export of single site.' . PHP_EOL;
+        //     return;
+        // }
 
-        // Get Single Blog Table Names
-        $tableNames = rtrim(shell_exec("$containerExec wp db tables 'wp_{$blogID}_*' --all-tables-with-prefix --format=csv"));
+        // // Get Single Blog Table Names
+        // $tableNames = rtrim(shell_exec("$containerExec wp db tables 'wp_{$blogID}_*' --all-tables-with-prefix --format=csv"));
 
-        if (count(explode(",", $tableNames)) < 10) {
-            $this->info('Not all blog tables found');
-            return;
-        }
+        // if (count(explode(",", $tableNames)) < 10) {
+        //     $this->info('Not all blog tables found');
+        //     return;
+        // }
 
-        // Export Single Blog from RDS to container
-        passthru("$containerExec wp db export --porcelain $sqlFile --tables='$tableNames'");
+        // // Export Single Blog from RDS to container
+        // passthru("$containerExec wp db export --porcelain $sqlFile --tables='$tableNames'");
 
-        $this->kubernetesObject->copyDatabaseToLocal($target, $podName, $sqlFile, $container = 'wordpress');
+        // $this->kubernetesObject->copyDatabaseToLocal($target, $podName, $sqlFile, $container = 'wordpress');
 
-        // Delete SQL file in container no longer needed
-        passthru("$containerExec rm $sqlFile");
+        // // Delete SQL file in container no longer needed
+        // passthru("$containerExec rm $sqlFile");
     }
 }
