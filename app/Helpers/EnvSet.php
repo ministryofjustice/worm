@@ -104,21 +104,33 @@ class EnvSet
         return strtolower($fileExtension) === 'sql';
     }
 
-    public function getDomain($target, $blogID = null) 
+    /**
+     * Get the domain for a specified environment and optionally a blog ID.
+     *
+     * This function retrieves the domain based on the environment provided. If the environment is 'prod' and a blog ID is provided, 
+     * it checks for the corresponding domain in a list of production domains. If the provided blog ID matches any blog ID in the 
+     * list, it returns the corresponding domain. Otherwise, it returns a default domain constructed using the site path. 
+     * If the environment is not 'prod', it constructs and returns a domain based on the environment.
+     *
+     * @param string $env The environment for which the domain is requested. Accepts 'prod' or any other environment string.
+     * @param int|null $blogID The ID of the blog (optional). Required only if $env is 'prod'.
+     * @return string The domain corresponding to the provided environment and blog ID (if applicable).
+     */
+    public function getDomain($env, $blogID = null)
     {
         // SSOT hardcoded list of production domains
         // List can be updated in the SiteList.php
         $container = Container::getInstance();
         $sites = $container->get('sites');
 
-        $target = strtolower($target);
+        $env = strtolower($env);
 
-        if ($target == 'prod') {
+        if ($env == 'prod' && !is_null($blogID)) {
             foreach ($sites as $site) {
                 $domain = $site['domain'];
                 $sitePath = $site['path'];
                 $siteID = $site['blogID'];
-    
+
                 if ($blogID == $siteID) {
                     return $domain;
                 } else {
@@ -127,16 +139,9 @@ class EnvSet
             }
         }
 
-
-        return "hale-platform-$target.apps.live.cloud-platform.service.justice.gov.uk";
-
-
-        // $kubernetesObject = new Kubernetes();
-        // $slug = $kubernetesObject->getSiteSlugByBlogId($target, $blogID);
-
-        //return "hale-platform-$target.apps.live.cloud-platform.service.justice.gov.uk/$slug";
-
+        return "hale-platform-$env.apps.live.cloud-platform.service.justice.gov.uk";
     }
+
 
     public function extractFileNameEnvironment($fileName) {
 

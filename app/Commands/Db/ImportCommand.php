@@ -13,7 +13,6 @@ class ImportCommand extends Command
      *
      * @var string
      */
-
     protected $signature = "db:import
         { target : Target environment you are importing DB to, ie prod, staging, dev, demo, local. }
         { file : Path to the database file you want to import. }
@@ -53,6 +52,7 @@ class ImportCommand extends Command
 
         $fileName = basename($filePath);
  
+        // Check SQL file and determine what environment it came from
         $extractEnvFromFileName = $envSetObject->extractFileNameEnvironment($fileName);
 
         if (in_array($extractEnvFromFileName, ['prod', 'staging', 'dev', 'demo', 'local'])) {
@@ -73,6 +73,7 @@ class ImportCommand extends Command
             exit(0);
         }
 
+        // Alert if importing to prod
         if ($target === 'prod') {
             $proceed = $this->ask('##### WARNING ##### You are running a command against prod. Do you wish to proceed? y/n');
 
@@ -86,19 +87,10 @@ class ImportCommand extends Command
         $importDatabaseObject = new ImportDatabase($target, $source, $filePath, $fileName, $blogID, $s3sync);
         
         try {
-
-            if (is_null($blogID)) {
-                $importDatabaseObject->runImportMultisite();
-            }
-
-            if (!empty($blogID)) {
-                $importDatabaseObject->runImportSingleSite();
-            }
-
+            $importDatabaseObject->runDatabaseImport();
             $this->info("Import completed successfully.");
         } catch (\Exception $e) {
             $this->error("Error during import: " . $e->getMessage());
         }
     }
-
 }

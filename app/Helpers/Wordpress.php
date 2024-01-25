@@ -13,7 +13,7 @@ class Wordpress
     public function __construct()
     {
         $this->kubernetesObject = new Kubernetes();
-        $this->EnvSetObject = new EnvSet();
+        $this->envSetObject = new EnvSet();
     }
 
      /**
@@ -24,13 +24,12 @@ class Wordpress
      */
     public function replaceDatabaseURLs($target, $source, $blogID = null)
     {
-        
         $containerExec = $this->kubernetesObject->getExecCommand($target);
 
         // Define the old and new URLs based on the environment names
         $sourceSiteURL = $this->envSetObject->getDomain($source);
         $targetSiteURL = $this->envSetObject->getDomain($target);
-     
+
         if ($blogID !== null) {
             $extraOptions = "--all-tables-with-prefix 'wp_{$blogID}_*'";
         } else {

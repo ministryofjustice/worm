@@ -108,13 +108,13 @@ class Kubernetes
      *
      * @return string The site slug (path) corresponding to the specified blog ID.
      */
-    public function getSiteSlugByBlogId($target, $blogId, $wpCliPath = 'wp')
+    public function getSiteSlugByBlogId($target, $blogID, $wpCliPath = 'wp')
     {
         // Get the command for executing operations in the container
         $containerExec = $this->getExecCommand($target);
 
         // Use the WP-CLI db query command to fetch the site slug for the specified blog ID
-        $command = "$containerExec {$wpCliPath} db query 'SELECT path FROM wp_blogs WHERE blog_id = {$blogId}' --skip-column-names";
+        $command = "$containerExec {$wpCliPath} db query 'SELECT path FROM wp_blogs WHERE blog_id = {$blogID}' --skip-column-names";
         $output = shell_exec($command);
 
         // Process the output to extract and trim the site slug
@@ -217,8 +217,6 @@ class Kubernetes
                 "s3://$targetBucket/$uploadsDir --acl=public-read\"";
 
         // Execute the command
-        //passthru($command);
-
-        var_dump($command);
+        passthru($command);
     }
 }
