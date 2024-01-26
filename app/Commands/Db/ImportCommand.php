@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Commands\Db;
 
 use Illuminate\Console\Command;
@@ -13,107 +12,151 @@ class ImportCommand extends Command
      *
      * @var string
      */
-    protected $signature = "db:import
-        { target : Target environment you are importing DB to, ie prod, staging, dev, demo, local. }
-        { file : Path to the database file you want to import. }
-        {--blogID= : Blog id of remote site db you want to replace. }
-        {--s3sync= : Set s3 sync to --s3sync=true will import the db and if available sync the media assets and rewrite s3bucket urls. }";
+    protected $signature = "db:import 
+        { target : Target environment you are importing DB to, ie prod, staging, dev, demo, local. } 
+        { file : Path to the database file you want to import. } 
+        {--blogID= : Blog id of remote site db you want to replace. } 
+        {--s3sync= : Using '--s3sync=true' will additionally sync the media assets and rewrite s3bucket urls. }";
 
     /**
      * The description of the command.
      *
      * @var string
      */
-    protected $description = 'Import WP multisite database(s) in .sql file format.';
+    protected $description = 'Import WP multisite or single site database SQL file.';
 
     /**
-     * Execute the console command.
+     * Instance of EnvSet class.
      *
-     * @return mixed
+     * @var EnvSet
+     */
+    protected $envSet;
+
+    /**
+     * Constructor method.
+     *
+     * @param EnvSet $envSet An instance of the EnvSet class.
+     * @return void
+     */
+    public function __construct(EnvSet $envSet)
+    {
+        parent::__construct();
+        $this->envSet = $envSet;
+    }
+
+    /**
+     * Handle the command execution.
+     *
+     * @return void
      */
     public function handle()
     {
-        // Get command line arguments and options
-        $target = $this->argument('target');
-        $filePath = $this->argument('file');
-        $blogID = $this->option('blogID');
-        $s3sync = $this->option('s3sync');
-
-        $source = '';
-
-        // Check if the SQL file is valid
-        $envSetObject = new EnvSet();
-        $sqlFileIsValid = $envSetObject->checkSQLfileIsValid($filePath);
-
-        if (!$sqlFileIsValid) {
-            $this->error("Invalid SQL file at: $filePath");
-            return;
-        }
-
-        $fileName = basename($filePath);
- 
-        // Check SQL file and determine what environment it came from
-        $extractEnvFromFileName = $envSetObject->extractFileNameEnvironment($fileName);
-
-        // Two checks to confirm file is multsite not single site
-        $isMultsiteFileName = $envSetObject->isMultisiteDbExportByFileName($fileName);
-        $isMultisiteDbTables = $envSetObject->searchWordsInSqlFile($filePath, ['wp_blogs','wp_site']);
-
-        $isInvalidSingleSiteImport = $isMultsiteFileName && $isMultisiteDbTables && !empty($blogID);
-
-        if ($isInvalidSingleSiteImport) {
-            echo 'Error: Your DB file contains tables indicating it is not a single site import. ' .
-                 'Omit the --blogID option if you want to import an entire multisite but this will overwrite all blogs ' .
-                 'with the imported data.' . PHP_EOL;
-                 exit(0);
-        }
-
-        $isSingleSiteExport = $isMultsiteFileName === false && $isMultisiteDbTables === false && empty($blogID);
-
-        if ($isSingleSiteExport) {
-            // Handle the error condition for a single site export without the --blogID option
-            echo 'Error: The file you are importing appears to contain a single site export however ' .
-                 'you have not included the --blogID option. ' .
-                 'Add --blogID option with the ID of the site you wish to import into.' . PHP_EOL;
-            exit(0);
-        }
-
-        if (in_array($extractEnvFromFileName, ['prod', 'staging', 'dev', 'demo', 'local'])) {
-            $source = $extractEnvFromFileName;
-        }
-
-        if ($extractEnvFromFileName == null) {
-            $customDatabaseDomain = $this->ask(
-                'The SQL file you are importing does not match one of our environments. ' .
-                'Enter the domain or URL of the database you are importing. ' .
-                'For example, ccrc.gov.uk. This is required to rewrite the database when it is imported. '. PHP_EOL
-            );
-            $source = $customDatabaseDomain;
-        }
-
-        if (empty($source)) {
-            echo 'Undetermined database origin. Exiting.' . PHP_EOL;
-            exit(0);
-        }
-
-        // Alert if importing to prod
-        if ($target === 'prod') {
-            $proceed = $this->ask('##### WARNING ##### You are running a command against prod. Do you wish to proceed? y/n');
-
-            // If not "yes", then exit.
-            if ($proceed != 'yes' && $proceed != 'y') {
-                $this->info("Command canceled. Exiting task.");
-                exit(0);
-            }
-        }
-
-        $importDatabaseObject = new ImportDatabase($target, $source, $filePath, $fileName, $blogID, $s3sync);
-
         try {
+            $this->validateInput();
+
+            $source = $this->envSet->determineSource($this->argument('file'));
+
+            $this->confirmProdWarning();
+
+            $importDatabaseObject = new ImportDatabase(
+                $this->argument('target'),
+                $source,
+                $this->argument('file'),
+                basename($this->argument('file')),
+                $this->option('blogID'),
+                $this->option('s3sync')
+            );
+
             $importDatabaseObject->runDatabaseImport();
+            
             $this->info("Import completed successfully.");
         } catch (\Exception $e) {
             $this->error("Error during import: " . $e->getMessage());
         }
     }
+
+    /**
+     * Validates input parameters before initiating the database import process.
+     *
+     * This method checks the validity of the target environment, file path, and database import type (single-site or multisite).
+     * Additionally, it ensures that the specified SQL file is valid.
+     *
+     * @throws \InvalidArgumentException When invalid input parameters are detected.
+     * @return void
+     */
+    protected function validateInput()
+    {
+        $target = $this->argument('target');
+        $filePath = $this->argument('file');
+        $blogID = $this->option('blogID');
+
+        // Validate the target environment, file path, and database import type
+        $this->envSet->validateTargetEnvironment($target);
+        $this->envSet->validateFilePath($filePath);
+        $this->envSet->validateMultisiteImport($filePath, $blogID);
+
+        // Check the validity of the specified SQL file
+        $this->envSet->checkSQLfileIsValid($filePath);
+    }
+
+    /**
+     * Confirm the user's intention to proceed when targeting the production environment.
+     * 
+     * If the target environment is 'prod', this method prompts the user with a warning message
+     * and asks for confirmation to proceed. If the user's response is not 'yes' or 'y', the
+     * command execution is canceled, and the task exits.
+     *
+     * @return void
+     */
+    protected function confirmProdWarning()
+    {
+        $target = $this->argument('target');
+
+        if ($target === 'prod') {
+            $proceed = $this->ask('### WARNING ### You are running a command against prod. Do you wish to proceed? y/n');
+
+            // If not "yes", then exit.
+            if ($proceed !== 'yes' && $proceed !== 'y') {
+                $this->info("Command canceled. Exiting task.");
+                exit(0);
+            }
+        }
+    }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -69,20 +69,15 @@ class EnvSet
      * @param string $path The path of the file.
      * @return bool True if the file exists; otherwise, false.
      */
-    public function checkSQLfileIsValid($file)
+    public function checkSQLfileIsValid($filePath)
     {
 
-        if (!$this->isSqlFile($file)) {
-            echo 'File is not an SQL file type.' . PHP_EOL;
-            exit(0);
+        if (!$this->isSqlFile($filePath)) {
+            throw new \InvalidArgumentException("File is not an SQL file type. ");
         }
 
-        $wordpressPathText =
-            'File not found.' . PHP_EOL;
-
-        if (!file_exists($file)) {
-            echo $wordpressPathText;
-            exit(0);
+        if (!file_exists($filePath)) {
+            throw new \InvalidArgumentException('File not found.');
         }
 
         return true;
@@ -192,7 +187,7 @@ class EnvSet
      * @param array $searchWords An array of words to search for.
      * @return bool True if at least two words are found, false otherwise.
      */
-    function searchWordsInSqlFile($filePath, $searchWords)
+    public function searchWordsInSqlFile($filePath, $searchWords)
     {
         // Check if the file exists
         if (!file_exists($filePath)) {
@@ -227,5 +222,114 @@ class EnvSet
 
         // Return false if less than two words are found
         return false;
+    }
+
+    /**
+     * Validate the target environment specified in the command.
+     *
+     * @throws \InvalidArgumentException
+     * @return void
+     */
+    public function validateTargetEnvironment($target)
+    {
+        $allowedEnvironments = ['prod', 'staging', 'dev', 'demo', 'local'];
+        if (!in_array($target, $allowedEnvironments)) {
+            throw new \InvalidArgumentException(
+                "Invalid target environment specified: $target. " .
+                "Allowed values are " . implode(', ', $allowedEnvironments) . "."
+            );
+        }
+    }
+
+    /**
+     * Validate the file path specified in the command.
+     *
+     * @throws \InvalidArgumentException
+     * @return void
+     */
+    public function validateFilePath($filePath)
+    {
+        if (!file_exists($filePath) || !is_readable($filePath)) {
+            throw new \InvalidArgumentException(
+                "Invalid file path specified: $filePath. " .
+                "The file does not exist or is not readable."
+            );
+        }
+    }
+
+    /**
+     * Validate the import type (multisite or single site) based on the file content and options.
+     *
+     * @throws \InvalidArgumentException
+     * @return void
+     */
+    public function validateMultisiteImport($filePath, $blogID)
+    {
+        $fileName = basename($filePath);
+
+        // Check if the file is a multisite export based on its name
+        $isMultisiteFileName = $this->isMultisiteDbExportByFileName($fileName);
+        
+        // Check if the file contains multisite database tables
+        $isMultisiteDbTables = $this->searchWordsInSqlFile($filePath, ['wp_blogs', 'wp_site']);
+
+        // Check if the import is invalid for single-site export
+        if ($isMultisiteFileName && $isMultisiteDbTables && !empty($blogID)) {
+            throw new \InvalidArgumentException(
+                'Your DB file contains tables indicating it is not a single site import. ' .
+                'Omit the --blogID option if you want to import an entire multisite but this will overwrite all blogs ' .
+                'with the imported data.'
+            );
+        }
+
+        // Check if the import is invalid for single-site import without --blogID
+        if ($isMultisiteFileName === false && $isMultisiteDbTables === false && empty($blogID)) {
+            throw new \InvalidArgumentException(
+                'The file you are importing appears to contain a single site export however ' .
+                'you have not included the --blogID option. ' .
+                'Add --blogID option with the ID of the site you wish to import into.'
+            );
+        }
+    }
+
+    /**
+     * Determine the source environment or domain of the database being imported.
+     * 
+     * This method checks the file name to extract the environment name using a regex pattern.
+     * If the file name indicates a known environment (prod, staging, dev, demo, local),
+     * that environment name is returned. Otherwise, the user is prompted to manually provide
+     * the domain or URL of the database being imported if it's not a WORM exported DB.
+     *
+     * @return string|null The source environment name or custom domain, or null if not determined.
+     */
+    public function determineSource($filePath)
+    {
+        $fileName = basename($filePath);
+
+        // Looks at our unique WORM file title and regex's the env name
+        $envName = $this->extractFileNameEnvironment($fileName);
+
+        if (in_array($envName, ['prod', 'staging', 'dev', 'demo', 'local'])) {
+            return $envName;
+        }
+
+        // For files that have not been generated by WORM
+        $proceed = $this->ask(
+            'The SQL file you are importing is not a WORM exported DB. ' .
+            'You will need to manually provide some information. Do you want to continue? [y/n] '
+        );
+
+        if ($proceed != 'yes' && $proceed != 'y') {
+            exit(0);
+        }
+
+        $customSourceDomain = $this->ask(
+            'WORM db:import needs to know what was the domain/url of the database you are importing. ' .
+            'If the database was from a new external domain, ie, example.com, you need ' .
+            'to provide that domain now, so that WORM can use that domain to rewrite the db files ' .
+            'to our target environment URL. Add domain: '
+        );
+
+        return $customSourceDomain;
     }
 }
