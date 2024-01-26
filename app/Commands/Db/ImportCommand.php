@@ -59,12 +59,12 @@ class ImportCommand extends Command
             $this->confirmProdWarning();
 
             $importDatabaseObject = new ImportDatabase(
-                $this->argument('target'),
-                $source,
-                $this->argument('file'),
-                basename($this->argument('file')),
-                $this->option('blogID'),
-                $this->option('s3sync')
+                target: $this->argument('target'),
+                source: $source,
+                filePath: $this->argument('file'),
+                fileName: basename($this->argument('file')),
+                blogID: $this->option('blogID'),
+                s3sync: $this->option('s3sync')
             );
 
             $importDatabaseObject->runDatabaseImport();
@@ -86,17 +86,13 @@ class ImportCommand extends Command
      */
     protected function validateInput()
     {
-        $target = $this->argument('target');
-        $filePath = $this->argument('file');
-        $blogID = $this->option('blogID');
-
-        // Validate the target environment, file path, and database import type
-        $this->envSet->validateTargetEnvironment($target);
-        $this->envSet->validateFilePath($filePath);
-        $this->envSet->validateMultisiteImport($filePath, $blogID);
-
-        // Check the validity of the specified SQL file
-        $this->envSet->checkSQLfileIsValid($filePath);
+        $this->envSet->validateTargetEnvironment($this->argument('target'));
+        $this->envSet->validateFilePath($this->argument('file'));
+        $this->envSet->validateMultisiteImport(
+            filePath: $this->argument('file'),
+            blogID: $this->option('blogID')
+        );
+        $this->envSet->checkSQLfileIsValid($this->argument('file'));
     }
 
     /**
