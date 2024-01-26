@@ -21,6 +21,14 @@ class ImportDatabase
      */
     protected $target;
 
+
+    /**
+     * The source.
+     *
+     * @var string
+     */
+    protected $source;
+
     /**
      * The file path of the SQL file to be imported.
      *
@@ -91,9 +99,10 @@ class ImportDatabase
      * @param int|null $blogID Optional blog ID for single-site import. Default is null.
      * @param string|null $s3sync Optional S3 synchronization flag. Default is null.
      */
-    public function __construct($target, $filePath, $fileName, $blogID = null, $s3sync = null)
+    public function __construct($target, $source, $filePath, $fileName, $blogID = null, $s3sync = null)
     {
         $this->target = $target;
+        $this->source = $source;
         $this->filePath = $filePath;
         $this->fileName = $fileName;
         $this->blogID = $blogID;
@@ -129,7 +138,7 @@ class ImportDatabase
      * Copy the SQL file into the Kubernetes container.
      */
     protected function copyDatabaseToContainer()
-    {
+    { 
         $this->kubernetesObject
             ->copyDatabaseToContainer($this->target, $this->filePath, $this->fileName, $this->podName);
     }
@@ -139,7 +148,7 @@ class ImportDatabase
      */
     protected function executeDbImportCommand()
     {
-        $importCommand = "$this->containerExec wp db import $this->fileName";
+        $importCommand = "$this->containerExec wp db import $this->fileName";        
         passthru($importCommand);
     }
 

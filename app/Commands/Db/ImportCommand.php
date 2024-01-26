@@ -55,6 +55,29 @@ class ImportCommand extends Command
         // Check SQL file and determine what environment it came from
         $extractEnvFromFileName = $envSetObject->extractFileNameEnvironment($fileName);
 
+        // Two checks to confirm file is multsite not single site
+        $isMultsiteFileName = $envSetObject->isMultisiteDbExportByFileName($fileName);
+        $isMultisiteDbTables = $envSetObject->searchWordsInSqlFile($filePath, ['wp_blogs','wp_site']);
+
+        $isInvalidSingleSiteImport = $isMultsiteFileName && $isMultisiteDbTables && !empty($blogID);
+
+        if ($isInvalidSingleSiteImport) {
+            echo 'Error: Your DB file contains tables indicating it is not a single site import. ' .
+                 'Omit the --blogID option if you want to import an entire multisite but this will overwrite all blogs ' .
+                 'with the imported data.' . PHP_EOL;
+                 exit(0);
+        }
+
+        $isSingleSiteExport = $isMultsiteFileName === false && $isMultisiteDbTables === false && empty($blogID);
+
+        if ($isSingleSiteExport) {
+            // Handle the error condition for a single site export without the --blogID option
+            echo 'Error: The file you are importing appears to contain a single site export however ' .
+                 'you have not included the --blogID option. ' .
+                 'Add --blogID option with the ID of the site you wish to import into.' . PHP_EOL;
+            exit(0);
+        }
+
         if (in_array($extractEnvFromFileName, ['prod', 'staging', 'dev', 'demo', 'local'])) {
             $source = $extractEnvFromFileName;
         }
@@ -63,7 +86,7 @@ class ImportCommand extends Command
             $customDatabaseDomain = $this->ask(
                 'The SQL file you are importing does not match one of our environments. ' .
                 'Enter the domain or URL of the database you are importing. ' .
-                'For example, ccrc.gov.uk. This is required to rewrite the database when it is imported.'
+                'For example, ccrc.gov.uk. This is required to rewrite the database when it is imported. '. PHP_EOL
             );
             $source = $customDatabaseDomain;
         }
@@ -85,7 +108,7 @@ class ImportCommand extends Command
         }
 
         $importDatabaseObject = new ImportDatabase($target, $source, $filePath, $fileName, $blogID, $s3sync);
-        
+
         try {
             $importDatabaseObject->runDatabaseImport();
             $this->info("Import completed successfully.");

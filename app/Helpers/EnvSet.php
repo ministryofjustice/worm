@@ -143,8 +143,8 @@ class EnvSet
     }
 
 
-    public function extractFileNameEnvironment($fileName) {
-
+    public function extractFileNameEnvironment($fileName) 
+    {
         $possibleEnvironments = ['dev', 'prod', 'staging', 'demo', 'local'];
 
         // Generate the regex pattern dynamically based on possible environments
@@ -158,5 +158,74 @@ class EnvSet
 
         // Return null if no match
         return null;
+    }
+
+
+    /**
+     * Check if the given filename indicates a multsite database file.
+     *
+     * This function uses a regular expression pattern to determine if the word "site"
+     * is present in the given filename. If the word "site" is found in the filename,
+     * it is considered to indicate a multisite database file.
+     *
+     * @param string $filename The filename to be checked.
+     *
+     * @return bool True if the filename indicates a multisite database file, false otherwise.
+     */
+    public function isMultisiteDbExportByFileName($filename)
+    {
+        // Define the regex pattern to match the word "site"
+        $pattern = '/\bsite\b/';
+
+        // Check if the pattern exists in the filename
+        if (!preg_match($pattern, $filename)) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * Search for an array of keywords in a SQL file and require at least two words to be found.
+     *
+     * @param string $filePath The path to the SQL file.
+     * @param array $searchWords An array of words to search for.
+     * @return bool True if at least two words are found, false otherwise.
+     */
+    function searchWordsInSqlFile($filePath, $searchWords)
+    {
+        // Check if the file exists
+        if (!file_exists($filePath)) {
+            return false;
+        }
+
+        // Open the file for reading
+        if (!$handle = fopen($filePath, 'r')) {
+            return false;
+        }
+
+        // Initialize counter for found words
+        $foundCount = 0;
+
+        // Read the file line by line
+        while (($line = fgets($handle)) !== false) {
+            // Check if any of the search words are found in the current line
+            foreach ($searchWords as $searchWord) {
+                if (strpos($line, $searchWord) !== false) {
+                    $foundCount++;
+                    // Break the loop if at least two words are found
+                    if ($foundCount >= 2) {
+                        fclose($handle);
+                        return true;
+                    }
+                }
+            }
+        }
+
+        // Close the file handle
+        fclose($handle);
+
+        // Return false if less than two words are found
+        return false;
     }
 }
