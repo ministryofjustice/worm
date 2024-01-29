@@ -35,6 +35,12 @@ $sites = [
         "path" => "vc",
     ],
 
+    "lob" => [
+        "blogID" => 7,
+        "domain" => "layobservers.org",
+        "path" => "lo",
+    ],
+
     "cym" => [
         "blogID" => 11,
         "domain" => "magistrates.judiciary.uk/cymraeg",
@@ -53,16 +59,70 @@ $sites = [
         "path" => "imb",
     ],
 
+    "vaw" => [
+        "blogID" => 15,
+        "domain" => "victimandwitnessinformation.org.uk",
+        "path" => "vw",
+    ],
+
     "icr" => [
         "blogID" => 16,
         "domain" => "icrir.independent-inquiry.uk",
         "path" => "icrir",
     ],
 
+    "ppj" => [
+        "blogID" => 18,
+        "domain" => "prisonandprobationjobs.gov.uk",
+        "path" => "ppj",
+    ],
+
+    "npm" => [
+        "blogID" => 23,
+        "domain" => "nationalpreventivemechanism.org.uk",
+        "path" => "npm",
+    ],
+
     "brh" => [
         "blogID" => 29,
         "domain" => "brookhouseinquiry.org.uk",
         "path" => "brookhouse",
+    ],
+
+    "lwc" => [
+        "blogID" => 30,
+        "domain" => "lawcom.gov.uk",
+        "path" => "lc",
+    ],
+
+    "jjb" => [
+        "blogID" => 31,
+        "domain" => "jobs.justice.gov.uk",
+        "path" => "jj",
+    ],
+
+    "ppo" => [
+        "blogID" => 34,
+        "domain" => "ppo.gov.uk",
+        "path" => "ppo",
+    ],
+
+    "sif" => [
+        "blogID" => 36,
+        "domain" => "sifocc.org",
+        "path" => "sifocc",
+    ],
+
+    "mib" => [
+        "blogID" => 37,
+        "domain" => "my.imb.org.uk",
+        "path" => "imbmembers-leg",
+    ],
+
+    "mlo" => [
+        "blogID" => 39,
+        "domain" => "members.layobservers.org",
+        "path" => "layobservers-members",
     ],
     ];
 

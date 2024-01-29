@@ -448,7 +448,7 @@ class MigrateCommand extends Command
         $containerExecCommand = $this->getExecCommand($env);
 
         # Get Single Blog Table Names
-        $tableNames = rtrim(shell_exec("$containerExecCommand wp db tables 'wp_$blogID*' --all-tables-with-prefix --format=csv"));
+        $tableNames = rtrim(shell_exec("$containerExecCommand wp db tables 'wp_{$blogID}_*' --all-tables-with-prefix --format=csv"));
 
         if (count(explode(",", $tableNames)) < 10) {
             $this->info('Not all blog tables found');
@@ -559,7 +559,7 @@ class MigrateCommand extends Command
         $containerExecCommand = $this->getExecCommand($env);
 
         if ($this->blogID !== null) {
-            $urlFlag = "--url=$targetSiteURL 'wp_$blogID*' --all-tables-with-prefix";
+            $urlFlag = "--url=$targetSiteURL 'wp_{$blogID}_*' --all-tables-with-prefix";
         } else {
             $urlFlag = "--url=$sourceSiteURL";
         }
@@ -675,7 +675,9 @@ class MigrateCommand extends Command
         $uploadsDir = ($blogID != null) ? "uploads/sites/$blogID" : "uploads";
 
         // Replace the s3 bucket name
-        $this->stringReplaceS3BucketName($sourceBucket, $targetBucket, $targetSiteURL, $containerExecCommand);
+        $this->stringReplaceS3BucketName($sourceBucket, $targetBucket, $targetSiteURL, $containerExecCommand, $blogID);
+
+        $this->info('=> AWS s3 bucket sync');
 
         passthru("kubectl exec -it -n hale-platform-$source $servicePodName -- bin/sh -c \"aws s3 sync s3://$sourceBucket/$uploadsDir s3://$targetBucket/$uploadsDir --acl=public-read\"");
     }
@@ -822,7 +824,7 @@ class MigrateCommand extends Command
         $targetSiteURL = "hale.docker";
 
         if ($this->blogID !== null) {
-            $urlFlag = "--url=$targetSiteURL";
+            $urlFlag = "--url=$domainPath 'wp_{$this->blogID}_*' --all-tables-with-prefix";
         } else {
             $urlFlag = "--url=$sourceSiteURL";
         }
@@ -895,12 +897,18 @@ class MigrateCommand extends Command
 
          // Search and replace only on the correct URL and blog ID if is single site migration
         if ($this->blogID !== null) {
-            $urlFlag = "--url=$domainPath 'wp_$siteID*' --all-tables-with-prefix";
+            // Handles whether you are migrating to a domain on prod or the hale-platform infrastructure domain
+            // as we can have both types on production.
+            if ($domain !== null) {
+                $urlFlag = "--url=$domain 'wp_{$siteID}_*' --all-tables-with-prefix";
+            } else {
+                $urlFlag = "--url=$domainPath 'wp_{$siteID}_*' --all-tables-with-prefix";
+            }
         } else {
             $urlFlag = "--url=$domainPath";
         }
 
-        passthru("$containerExecCommand wp search-replace $urlFlag --network --skip-columns=guid --report-changed-only '$domainPath' 'https://$domain'");
+        passthru("$containerExecCommand wp search-replace '$domainPath' 'https://$domain' $urlFlag --network --skip-columns=guid --report-changed-only");
         passthru("$containerExecCommand wp db query 'UPDATE wp_blogs SET domain=\"$domain\" WHERE wp_blogs.blog_id=$siteID'");
         passthru("$containerExecCommand wp db query 'UPDATE wp_blogs SET path=\"/\" WHERE wp_blogs.blog_id=$siteID'");
     }
@@ -929,12 +937,12 @@ class MigrateCommand extends Command
 
         // Search and replace only on the correct URL and blog ID if is single site migration
         if ($this->blogID !== null) {
-            $urlFlag = "--url=$domain 'wp_$siteID*' --all-tables-with-prefix";
+            $urlFlag = "--url=$domain 'wp_{$siteID}_*' --all-tables-with-prefix";
         } else {
             $urlFlag = "--url=$domain";
         }
 
-        passthru("$containerExecCommand wp search-replace $urlFlag --network --skip-columns=guid --report-changed-only 'https://$domain' '$domainPath'");
+        passthru("$containerExecCommand wp search-replace 'https://$domain' '$domainPath' $urlFlag --network --skip-columns=guid --report-changed-only");
         passthru("$containerExecCommand wp db query 'UPDATE wp_blogs SET domain=\"$newDomainPath\" WHERE wp_blogs.blog_id=$siteID'");
         passthru("$containerExecCommand wp db query 'UPDATE wp_blogs SET path=\"/$sitePath/\" WHERE wp_blogs.blog_id=$siteID'");
 
@@ -959,10 +967,17 @@ class MigrateCommand extends Command
      * @param string $containerExecCommand The command for executing within the container.
      * @return void
      */
-    public function stringReplaceS3BucketName($sourceBucket, $targetBucket, $targetSiteURL, $containerExecCommand)
+    public function stringReplaceS3BucketName($sourceBucket, $targetBucket, $targetSiteURL, $containerExecCommand, $blogID)
     {
-        $command = "$containerExecCommand wp search-replace $sourceBucket $targetBucket --url=$targetSiteURL --network --precise --skip-columns=guid --report-changed-only --recurse-objects";
-        $this->info("Run s3 bucket string replace: $sourceBucket => $targetBucket ");
+
+        if ($this->blogID !== null) {
+            $urlFlag = "--url=$targetSiteURL 'wp_{$blogID}_*' --all-tables-with-prefix";
+        } else {
+            $urlFlag = "--url=$sourceSiteURL";
+        }
+
+        $command = "$containerExecCommand wp search-replace $sourceBucket $targetBucket $urlFlag --network --precise --skip-columns=guid --report-changed-only --recurse-objects";
+        $this->info("Run s3 bucket string replace: $sourceBucket with $targetBucket ");
         passthru($command);
     }
 }
