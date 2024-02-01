@@ -9,21 +9,21 @@ class Wordpress
 {
     /**
      * The Kubernetes object used for interacting with Kubernetes resources.
-     * 
+     *
      * @var Kubernetes
      */
     protected $kubernetesObject;
 
     /**
      * The EnvSet object used for managing environment settings.
-     * 
+     *
      * @var EnvSet
      */
     protected $envSetObject;
 
     /**
      * Constructor method for the ImportCommand class.
-     * 
+     *
      * Initializes the Kubernetes and EnvSet objects used within the ImportCommand class.
      * These objects are responsible for interacting with Kubernetes resources and environment settings, respectively.
      *
@@ -97,7 +97,7 @@ class Wordpress
         $command .= " --skip-columns=guid";
         $command .= " --report-changed-only";
         $command .= " --recurse-objects";
-        
+
         echo "Run s3 bucket string replace: $sourceBucket with $targetBucket ";
         passthru($command);
     }

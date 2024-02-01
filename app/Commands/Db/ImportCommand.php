@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Commands\Db;
 
 use Illuminate\Console\Command;
@@ -68,7 +69,7 @@ class ImportCommand extends Command
             );
 
             $importDatabaseObject->runDatabaseImport();
-            
+
             $this->info("Import completed successfully.");
         } catch (\Exception $e) {
             $this->error("Error during import: " . $e->getMessage());
@@ -97,7 +98,7 @@ class ImportCommand extends Command
 
     /**
      * Confirm the user's intention to proceed when targeting the production environment.
-     * 
+     *
      * If the target environment is 'prod', this method prompts the user with a warning message
      * and asks for confirmation to proceed. If the user's response is not 'yes' or 'y', the
      * command execution is canceled, and the task exits.
@@ -119,40 +120,3 @@ class ImportCommand extends Command
         }
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

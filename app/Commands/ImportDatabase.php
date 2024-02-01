@@ -116,7 +116,7 @@ class ImportDatabase
     /**
      * Execute the WordPress multisite database import operation.
      *
-     * This method orchestrates the database import process. 
+     * This method orchestrates the database import process.
      * It copies the SQL file into the Kubernetes container, executes the 'wp db import' command,
      * removes the imported SQL file, performs URL replacements in the database, and optionally synchronizes S3 buckets
      * and performs string replacements of S3 bucket names in the WordPress installation.
@@ -138,7 +138,7 @@ class ImportDatabase
      * Copy the SQL file into the Kubernetes container.
      */
     protected function copyDatabaseToContainer()
-    { 
+    {
         $this->kubernetesObject
             ->copyDatabaseToContainer($this->target, $this->filePath, $this->fileName, $this->podName);
     }
@@ -148,7 +148,7 @@ class ImportDatabase
      */
     protected function executeDbImportCommand()
     {
-        $importCommand = "$this->containerExec wp db import $this->fileName";        
+        $importCommand = "$this->containerExec wp db import $this->fileName";
         passthru($importCommand);
     }
 

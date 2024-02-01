@@ -94,7 +94,7 @@ class Kubernetes
         $command .= " -n hale-platform-$target";
         $command .= " -c $container";
         $command .= " $filePath hale-platform-$target/$podName:$fileName";
-        
+
         // Execute the kubectl cp command
         passthru($command);
     }

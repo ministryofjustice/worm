@@ -897,7 +897,6 @@ class MigrateCommand extends Command
 
          // Search and replace only on the correct URL and blog ID if is single site migration
         if ($this->blogID !== null) {
-
             // Handles whether you are migrating to a domain on prod or the hale-platform infrastructure domain
             // as we can have both types on production.
             if ($domain !== null) {
@@ -905,7 +904,6 @@ class MigrateCommand extends Command
             } else {
                 $urlFlag = "--url=$domainPath 'wp_{$siteID}_*' --all-tables-with-prefix";
             }
-            
         } else {
             $urlFlag = "--url=$domainPath";
         }

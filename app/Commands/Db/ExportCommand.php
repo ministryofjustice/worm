@@ -42,9 +42,9 @@ class ExportCommand extends Command
 
         $envSetObject = new EnvSet();
         $sqlfile = $envSetObject->generateFileName($target, $blogID);
-        
+
         $exportDatabase = new ExportDatabase($target, $sqlfile, $blogID);
-    
+
         if (is_null($blogID)) {
             $exportDatabase->runExportMultisite();
         }

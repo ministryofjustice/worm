@@ -3,13 +3,11 @@
 namespace App\Helpers;
 
 use LaravelZero\Framework\Commands\Command;
-
 use App\Helpers\Kubernetes;
 use Illuminate\Container\Container;
 
 class EnvSet
 {
-
     /**
      * Generate a unique SQL file name based on the environment and optional blog ID.
      *
@@ -102,9 +100,9 @@ class EnvSet
     /**
      * Get the domain for a specified environment and optionally a blog ID.
      *
-     * This function retrieves the domain based on the environment provided. If the environment is 'prod' and a blog ID is provided, 
-     * it checks for the corresponding domain in a list of production domains. If the provided blog ID matches any blog ID in the 
-     * list, it returns the corresponding domain. Otherwise, it returns a default domain constructed using the site path. 
+     * This function retrieves the domain based on the environment provided. If the environment is 'prod' and a blog ID is provided,
+     * it checks for the corresponding domain in a list of production domains. If the provided blog ID matches any blog ID in the
+     * list, it returns the corresponding domain. Otherwise, it returns a default domain constructed using the site path.
      * If the environment is not 'prod', it constructs and returns a domain based on the environment.
      *
      * @param string $env The environment for which the domain is requested. Accepts 'prod' or any other environment string.
@@ -138,7 +136,7 @@ class EnvSet
     }
 
 
-    public function extractFileNameEnvironment($fileName) 
+    public function extractFileNameEnvironment($fileName)
     {
         $possibleEnvironments = ['dev', 'prod', 'staging', 'demo', 'local'];
 
@@ -269,7 +267,7 @@ class EnvSet
 
         // Check if the file is a multisite export based on its name
         $isMultisiteFileName = $this->isMultisiteDbExportByFileName($fileName);
-        
+
         // Check if the file contains multisite database tables
         $isMultisiteDbTables = $this->searchWordsInSqlFile($filePath, ['wp_blogs', 'wp_site']);
 
