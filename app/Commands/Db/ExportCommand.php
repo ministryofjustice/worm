@@ -2,6 +2,8 @@
 
 namespace App\Commands\Db;
 
+use App\Commands\ExportDatabase;
+use App\Helpers\EnvSet;
 use Illuminate\Console\Scheduling\Schedule;
 use LaravelZero\Framework\Commands\Command;
 
@@ -11,8 +13,15 @@ class ExportCommand extends Command
      * The signature of the command.
      *
      * @var string
+     *
+     * This property defines the command signature used in the console to invoke the 'db:export' command.
+     * It includes the required 'target' argument, representing the target environment for exporting the database,
+     * and an optional '--blogID' option, allowing specification of a blog ID associated with the export.
+     * The format of the signature is 'db:export {target} {--blogID=}'.
      */
-    protected $signature = 'db:export {--blogID= : blog id}';
+    protected $signature = 'db:export 
+                            {target : Target environment you are exporting DB from}
+                            {--blogID= : blog id}';
 
     /**
      * The description of the command.
@@ -28,61 +37,20 @@ class ExportCommand extends Command
      */
     public function handle()
     {
-        $namespace = shell_exec('kubectl config view --minify -o jsonpath="{..namespace}"');
-
-        $this->info("Your current namespace: " . $namespace);
-
-        $proceed = $this->ask('Do you wish to proceed?');
-
-        if ($proceed != 'yes' && $proceed != 'y') {
-            return;
-        }
-
-        # Get current pod name to shell into and run wpcli
-        $podName = rtrim(shell_exec('kubectl get pods -o=name | grep -m 1 wordpress | sed "s/^.\{4\}//"'));
-
-        $podExec = "kubectl exec -it -c wordpress pod/$podName --";
-
         $blogID = $this->option('blogID');
+        $target = $this->argument('target');
 
-        $validBlogID = false;
+        $envSetObject = new EnvSet();
+        $sqlfile = $envSetObject->generateFileName($target, $blogID);
 
-        if (is_numeric($blogID)) {
-            # Check Site Exists
-            $siteCheck = rtrim(shell_exec("$podExec wp site list --site__in=$blogID --field=blog_id --format=csv"));
+        $exportDatabase = new ExportDatabase($target, $sqlfile, $blogID);
 
-            if (empty($siteCheck)) {
-                $this->info('Site not found');
-                return;
-            }
-
-            $validBlogID = true;
+        if (is_null($blogID)) {
+            $exportDatabase->runExportMultisite();
         }
 
-        if ($validBlogID) {
-            $sqlFile = $namespace . '-site' . $blogID . '-' . date("Y-m-d-H-i-s") . '.sql';
-
-            # Get Single Blog Table Names
-            $tableNames = rtrim(shell_exec("$podExec wp db tables 'wp_$blogID*' --all-tables-with-prefix --format=csv"));
-
-            if (count(explode(",", $tableNames)) < 10) {
-                $this->info('Not all blog tables found');
-                return;
-            }
-
-            # Export Single Blog from RDS to container
-            passthru("$podExec wp db export --porcelain $sqlFile --tables='$tableNames'");
-        } else {
-            $sqlFile = $namespace . '-' . date("Y-m-d-H-i-s") . '.sql';
-
-            # Export DB from RDS to container
-            passthru("$podExec wp db export --porcelain $sqlFile");
+        if (!empty($blogID)) {
+            $exportDatabase->runExportSingleSite();
         }
-
-        # Copy database from container to local machine
-        passthru("kubectl cp $namespace/$podName:$sqlFile $sqlFile -c wordpress");
-
-        # Delete SQL file in container no longer needed
-        passthru("$podExec rm $sqlFile");
     }
 }

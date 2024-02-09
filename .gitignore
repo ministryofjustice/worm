@@ -1,6 +1,7 @@
 *.sql
 .env
 .DS_Store
-/vendor
-/builds
-/wordpress
+vendor/
+builds/
+wordpress/
+storage/
