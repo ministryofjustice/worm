@@ -12,7 +12,7 @@ class ExportDatabase
     protected $podName;
     protected $containerExec;
     protected $sqlFile;
-    protected $kubernetes;
+    protected $kubernetesObject;
 
     /**
      * Constructor for the ExportDatabase class.
@@ -30,9 +30,9 @@ class ExportDatabase
         $this->blogID = $blogID;
         $this->sqlFile = $sqlFile;
         $this->target = $target;
-        $this->kubernetes = new Kubernetes($target);
-        $this->podName = $this->kubernetes->getPodName($target, "wordpress");
-        $this->containerExec = $this->kubernetes->getExecCommand($target);
+        $this->kubernetesObject = new Kubernetes();
+        $this->podName = $this->kubernetesObject->getPodName($target, "wordpress");
+        $this->containerExec = $this->kubernetesObject->getExecCommand($target);
     }
 
     /**
@@ -50,8 +50,7 @@ class ExportDatabase
 
         passthru("$containerExec wp db export --porcelain $sqlFile");
 
-        $kubernetesObject = new Kubernetes();
-        $kubernetesObject->copyDatabaseToLocal($target, $podName, $sqlFile, $container = 'wordpress');
+        $this->kubernetesObject->copyDatabaseToLocal($target, $podName, $sqlFile, $container = 'wordpress');
 
         // Delete SQL file in container no longer needed
         passthru("$containerExec rm $sqlFile");
@@ -91,8 +90,7 @@ class ExportDatabase
         // Export Single Blog from RDS to container
         passthru("$containerExec wp db export --porcelain $sqlFile --tables='$tableNames'");
 
-        $kubernetesObject = new Kubernetes();
-        $kubernetesObject->copyDatabaseToLocal($target, $podName, $sqlFile, $container = 'wordpress');
+        $this->kubernetesObject->copyDatabaseToLocal($target, $podName, $sqlFile, $container = 'wordpress');
 
         // Delete SQL file in container no longer needed
         passthru("$containerExec rm $sqlFile");
