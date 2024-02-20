@@ -5,3 +5,4 @@ vendor/
 builds/
 wordpress/
 storage/
+composer.lock
