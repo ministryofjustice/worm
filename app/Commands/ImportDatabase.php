@@ -131,7 +131,7 @@ class ImportDatabase
         if ($this->s3sync === 'true') {
             $this->syncS3Buckets();
         }
-        
+
         $this->replaceS3BucketNames();
     }
 

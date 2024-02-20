@@ -98,7 +98,7 @@ class Kubernetes
         // Execute the kubectl cp command
         passthru($command);
     }
-    
+
     /**
      * Retrieves the S3 bucket name for a given environment.
      *
