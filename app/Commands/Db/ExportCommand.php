@@ -3,7 +3,7 @@
 namespace App\Commands\Db;
 
 use App\Commands\ExportDatabase;
-use App\Helpers\EnvSet;
+use App\Helpers\EnvUtils;
 use Illuminate\Console\Scheduling\Schedule;
 use LaravelZero\Framework\Commands\Command;
 
@@ -40,8 +40,8 @@ class ExportCommand extends Command
         $blogID = $this->option('blogID');
         $target = $this->argument('target');
 
-        $envSetObject = new EnvSet();
-        $sqlfile = $envSetObject->generateFileName($target, $blogID);
+        $envUtilsObject = new EnvUtils();
+        $sqlfile = $envUtilsObject->generateFileName($target, $blogID);
 
         $exportDatabase = new ExportDatabase($target, $sqlfile, $blogID);
 

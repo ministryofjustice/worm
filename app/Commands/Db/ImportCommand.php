@@ -4,7 +4,7 @@ namespace App\Commands\Db;
 
 use Illuminate\Console\Command;
 use App\Commands\ImportDatabase;
-use App\Helpers\EnvSet;
+use App\Helpers\EnvUtils;
 
 class ImportCommand extends Command
 {
@@ -27,22 +27,22 @@ class ImportCommand extends Command
     protected $description = 'Import WP multisite or single site database SQL file.';
 
     /**
-     * Instance of EnvSet class.
+     * Instance of EnvUtils class.
      *
-     * @var EnvSet
+     * @var EnvUtils
      */
-    protected $envSet;
+    protected $envUtils;
 
     /**
      * Constructor method.
      *
-     * @param EnvSet $envSet An instance of the EnvSet class.
+     * @param EnvUtils $envUtils An instance of the EnvUtils class.
      * @return void
      */
-    public function __construct(EnvSet $envSet)
+    public function __construct(EnvUtils $envUtils)
     {
         parent::__construct();
-        $this->envSet = $envSet;
+        $this->envUtils = $envUtils;
     }
 
     /**
@@ -55,7 +55,7 @@ class ImportCommand extends Command
         try {
             $this->validateInput();
 
-            $source = $this->envSet->determineSource($this->argument('file'));
+            $source = $this->envUtils->determineSource($this->argument('file'));
 
             $this->confirmProdWarning();
 
@@ -87,13 +87,13 @@ class ImportCommand extends Command
      */
     protected function validateInput()
     {
-        $this->envSet->validateTargetEnvironment($this->argument('target'));
-        $this->envSet->validateFilePath($this->argument('file'));
-        $this->envSet->validateMultisiteImport(
+        $this->envUtils->validateTargetEnvironment($this->argument('target'));
+        $this->envUtils->validateFilePath($this->argument('file'));
+        $this->envUtils->validateMultisiteImport(
             filePath: $this->argument('file'),
             blogID: $this->option('blogID')
         );
-        $this->envSet->checkSQLfileIsValid($this->argument('file'));
+        $this->envUtils->checkSQLfileIsValid($this->argument('file'));
     }
 
     /**

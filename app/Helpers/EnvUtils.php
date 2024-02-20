@@ -6,7 +6,7 @@ use LaravelZero\Framework\Commands\Command;
 use App\Helpers\Kubernetes;
 use Illuminate\Container\Container;
 
-class EnvSet
+class EnvUtils
 {
     /**
      * Generate a unique SQL file name based on the environment and optional blog ID.

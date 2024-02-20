@@ -3,7 +3,7 @@
 namespace App\Helpers;
 
 use App\Helpers\Kubernetes;
-use App\Helpers\EnvSet;
+use App\Helpers\EnvUtils;
 
 class Wordpress
 {
@@ -15,16 +15,16 @@ class Wordpress
     protected $kubernetesObject;
 
     /**
-     * The EnvSet object used for managing environment settings.
+     * The EnvUtils object used for managing environment settings.
      *
-     * @var EnvSet
+     * @var EnvUtils
      */
-    protected $envSetObject;
+    protected $envUtilsObject;
 
     /**
      * Constructor method for the ImportCommand class.
      *
-     * Initializes the Kubernetes and EnvSet objects used within the ImportCommand class.
+     * Initializes the Kubernetes and EnvUtils objects used within the ImportCommand class.
      * These objects are responsible for interacting with Kubernetes resources and environment settings, respectively.
      *
      * @return void
@@ -32,7 +32,7 @@ class Wordpress
     public function __construct()
     {
         $this->kubernetesObject = new Kubernetes();
-        $this->envSetObject = new EnvSet();
+        $this->envUtilsObject = new EnvUtils();
     }
 
      /**
@@ -46,8 +46,8 @@ class Wordpress
         $containerExec = $this->kubernetesObject->getExecCommand($target);
 
         // Define the old and new URLs based on the environment names
-        $sourceSiteURL = $this->envSetObject->getDomain($source);
-        $targetSiteURL = $this->envSetObject->getDomain($target);
+        $sourceSiteURL = $this->envUtilsObject->getDomain($source);
+        $targetSiteURL = $this->envUtilsObject->getDomain($target);
 
         if ($blogID !== null) {
             $extraOptions = "--all-tables-with-prefix 'wp_{$blogID}_*'";
