@@ -98,32 +98,7 @@ class Kubernetes
         // Execute the kubectl cp command
         passthru($command);
     }
-
-    /**
-     * Retrieves the site slug (path) for a specific blog ID in a WordPress multisite environment.
-     *
-     * @param string $target The target environment.
-     * @param int $blogId The blog ID for which to fetch the site slug.
-     * @param string $wpCliPath The path to the WP-CLI executable (default is 'wp').
-     *
-     * @return string The site slug (path) corresponding to the specified blog ID.
-     */
-    public function getSiteSlugByBlogId($target, $blogID, $wpCliPath = 'wp')
-    {
-        // Get the command for executing operations in the container
-        $containerExec = $this->getExecCommand($target);
-
-        // Use the WP-CLI db query command to fetch the site slug for the specified blog ID
-        $command = "$containerExec {$wpCliPath} db query 'SELECT path FROM wp_blogs WHERE blog_id = {$blogID}' --skip-column-names";
-        $output = shell_exec($command);
-
-        // Process the output to extract and trim the site slug
-        $siteSlug = trim($output);
-
-        // Return the site slug
-        return $siteSlug;
-    }
-
+    
     /**
      * Retrieves the S3 bucket name for a given environment.
      *
