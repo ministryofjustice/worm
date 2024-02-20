@@ -1,15 +1,17 @@
 name: PHP linting and CS Git Action
 
 on:
-  pull_request:
-    types: [opened, edited, reopened, synchronize]
+  workflow_dispatch:
+  push:
+    branches:
+      - 'main'
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         repository: ${{ github.event.pull_request.head.repo.full_name }}
         ref: ${{ github.event.pull_request.head.ref }}
@@ -19,7 +21,7 @@ jobs:
 
     - name: Cache Composer packages
       id: composer-cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: vendor
         key: ${{ runner.os }}-php-${{ hashFiles('**/composer.lock') }}
@@ -28,13 +30,13 @@ jobs:
 
     - name: Install dependencies
       if: steps.composer-cache.outputs.cache-hit != 'true'
-      run: composer install --prefer-dist --no-progress --no-suggest
+      run: composer install --prefer-dist --no-progress
 
     - name: Autocorrect PHP12 code standards violations
       run: composer phpcbf
       continue-on-error: true
       # Attempt to lint code but do not fail if unable
-      
+
     - name: Set PHPCS config
       run : composer phpcs-config-set
       # Run PHPCS config set to stop it exiting on a warning when linting
@@ -44,7 +46,7 @@ jobs:
       # Fail if error is detected
 
     - name: Add & Commit
-      uses: EndBug/add-and-commit@v9.1.1
+      uses: EndBug/add-and-commit@v9
       with:
         add: '.'
         author_name: "${{ github.actor }}"

@@ -9,7 +9,7 @@ dir=$(pwd)
 # Check we have PHP installed
 if ! command -v php &> /dev/null
 then
-    echo "PHP could not found on this machine, and is a requirement 
+    echo "PHP could not found on this machine, and is a requirement
     for WORM. Terminating install."
     exit
 fi
@@ -40,7 +40,7 @@ then
 fi
 
 # Build binary of latest worm
-php worm app:build --build-version=0.3.0 --no-interaction
+php worm app:build --build-version=0.5.0 --no-interaction
 
 # System link to add build to local $PATH
 sudo ln -s $dir/builds/worm /usr/local/bin/worm
