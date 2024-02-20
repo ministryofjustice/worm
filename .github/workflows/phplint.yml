@@ -1,8 +1,10 @@
 name: PHP linting and CS Git Action
 
 on:
-  pull_request:
-    types: [opened, edited, reopened, synchronize]
+  workflow_dispatch:
+  push:
+    branches:
+      - 'main'
 
 jobs:
   build:
