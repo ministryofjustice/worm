@@ -55,7 +55,7 @@ class ImportCommand extends Command
         try {
             $this->validateInput();
 
-            $source = $this->envUtils->determineSource($this->argument('file'));
+            $source = $this->envUtils->identifySource($this->argument('file'));
 
             $this->confirmProdWarning();
 
