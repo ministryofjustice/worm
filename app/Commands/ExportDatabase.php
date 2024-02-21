@@ -3,7 +3,7 @@
 namespace App\Commands;
 
 use App\Helpers\Kubernetes;
-use App\Helpers\EnvSet;
+use App\Helpers\EnvUtils;
 
 class ExportDatabase
 {
@@ -71,8 +71,8 @@ class ExportDatabase
         $containerExec = $this->containerExec;
         $podName = $this->podName;
         $target = $this->target;
-        $envSetObject = new EnvSet();
-        $blogExists = $envSetObject->checkSiteExists($target, $blogID);
+        $envUtilsObject = new EnvUtils();
+        $blogExists = $envUtilsObject->checkSiteExists($target, $blogID);
 
         if (!$blogExists) {
             echo 'Blog with ID ' . $blogID . ' not found during export of single site.' . PHP_EOL;
