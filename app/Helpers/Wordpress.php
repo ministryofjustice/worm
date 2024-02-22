@@ -107,7 +107,7 @@ class Wordpress
         $command .= " --recurse-objects";
 
         echo "Run s3 bucket string replace: $sourceBucket with $targetBucket";
-        
+
         passthru($command, $status);
 
         // Check if the command failed
