@@ -124,6 +124,9 @@ class ImportDatabase
     public function runDatabaseImport()
     {
         $this->copyDatabaseToContainer();
+
+        die();
+        
         $this->executeDbImportCommand();
         $this->removeSqlFileFromContainer();
         $this->replaceDatabaseURLs();
@@ -131,7 +134,7 @@ class ImportDatabase
         if ($this->s3sync === 'true') {
             $this->syncS3Buckets();
         }
-        
+
         $this->replaceS3BucketNames();
     }
 
@@ -204,6 +207,7 @@ class ImportDatabase
     {
         $targetBucket = $this->kubernetesObject->getBucketName($this->target);
         $sourceBucket = $this->kubernetesObject->getBucketName($this->source);
-        $this->wordpressObject->stringReplaceS3BucketName($targetBucket, $sourceBucket, $this->blogID);
+
+        $this->wordpressObject->stringReplaceS3BucketName($targetBucket, $sourceBucket, $this->target, $this->blogID);
     }
 }

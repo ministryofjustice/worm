@@ -60,6 +60,14 @@ class Kubernetes
 
         $podName = $this->getPodName($env, "wordpress");
 
+        // Check if the command failed
+        if ($podName == null) {
+            // An error occurred, handle it here
+            throw new \InvalidArgumentException(
+                "Failed to get pod name."
+            );
+        }
+
         return "kubectl exec -it -n hale-platform-$env -c wordpress pod/$podName --";
     }
 

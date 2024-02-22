@@ -317,23 +317,31 @@ class EnvUtils
         }
     }
 
-
     /**
      * Update and upgrade the cloud-platform-cli package using Homebrew.
      *
-     * This method updates Homebrew and upgrades the cloud-platform-cli package to the latest version.
+     * This method updates Homebrew to ensure it has the latest package information
+     * and then upgrades the cloud-platform-cli package to the latest version available.
+     * It checks the status of the cloud-platform-cli package on the system and performs
+     * the update and upgrade operation using Homebrew. To perform some task in
+     * CloudPlatform we require this tool.
      *
+     * @throws \InvalidArgumentException If the update and upgrade operation fails.
+     *                                   The method exits with an error message.
      * @return void
      */
     public function updateCloudPlatformCli()
     {
-        echo "System check cloud-platform-cli is updated to latest version ...";
+        echo "Checking cloud-platform-cli status on the system..." . PHP_EOL;
 
+        // Execute the Homebrew command to update and upgrade the cloud-platform-cli package
         exec("brew update && brew upgrade cloud-platform-cli 2>/dev/null", $output, $resultCode);
 
+        // Check the result code of the command
         if ($resultCode !== 0) {
+            // If the update and upgrade operation fails, throw an exception
             throw new \InvalidArgumentException(
-                "Failed to update and upgrade dependency cloud-platform-cli. Exiting."
+                "Failed to update and upgrade the cloud-platform-cli package. Exiting."
             );
         }
     }
