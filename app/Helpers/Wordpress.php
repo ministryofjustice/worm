@@ -66,7 +66,15 @@ class Wordpress
         $command .= " --report-changed-only";
         $command .= " --recurse-objects";
 
-        passthru($command);
+        passthru($command, $status);
+
+        // Check if the command failed
+        if ($status !== 0) {
+            // An error occurred, handle it here
+            throw new \InvalidArgumentException(
+                "Error: Failed to execute wp search-replace \n$command"
+            );
+        }
     }
 
     /**

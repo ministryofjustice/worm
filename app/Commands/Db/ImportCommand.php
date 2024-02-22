@@ -53,6 +53,7 @@ class ImportCommand extends Command
     public function handle()
     {
         try {
+            $this->envUtils->updateCloudPlatformCli();
             $this->validateInput();
 
             $source = $this->envUtils->identifySource($this->argument('file'));

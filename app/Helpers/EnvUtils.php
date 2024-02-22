@@ -316,4 +316,25 @@ class EnvUtils
             );
         }
     }
+
+
+    /**
+     * Update and upgrade the cloud-platform-cli package using Homebrew.
+     *
+     * This method updates Homebrew and upgrades the cloud-platform-cli package to the latest version.
+     *
+     * @return void
+     */
+    public function updateCloudPlatformCli()
+    {
+        echo "System check cloud-platform-cli is updated to latest version ...";
+
+        exec("brew update && brew upgrade cloud-platform-cli 2>/dev/null", $output, $resultCode);
+
+        if ($resultCode !== 0) {
+            throw new \InvalidArgumentException(
+                "Failed to update and upgrade dependency cloud-platform-cli. Exiting."
+            );
+        }
+    }
 }

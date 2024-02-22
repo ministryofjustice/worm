@@ -80,11 +80,16 @@ class Kubernetes
     /**
      * Copy the database file to a Kubernetes container in the specified target environment.
      *
+     * This method uses the `kubectl cp` command to copy the database file from the local filesystem
+     * to a specified Kubernetes pod running in the target environment.
+     *
      * @param string $target     The target environment identifier.
-     * @param string $filePath   The path to the database file to be copied.
+     * @param string $filePath   The local path to the database file to be copied.
      * @param string $fileName   The name of the database file.
      * @param string $podName    The name of the Kubernetes pod where the file will be copied.
      * @param string $container  The name of the container within the pod (default: 'wordpress').
+     *
+     * @throws \InvalidArgumentException If the `kubectl cp` command fails to execute.
      */
     public function copyDatabaseToContainer($target, $filePath, $fileName, $podName, $container = 'wordpress')
     {
@@ -96,7 +101,15 @@ class Kubernetes
         $command .= " $filePath hale-platform-$target/$podName:$fileName";
 
         // Execute the kubectl cp command
-        passthru($command);
+        passthru($command, $status);
+
+        // Check if the command failed
+        if ($status !== 0) {
+            // An error occurred, handle it here
+            throw new \InvalidArgumentException(
+                "Error: Failed to execute kubectl cp command: \n$command"
+            );
+        }
     }
 
     /**
@@ -191,7 +204,15 @@ class Kubernetes
                 "aws s3 sync s3://$sourceBucket/$uploadsDir " .
                 "s3://$targetBucket/$uploadsDir --acl=public-read\"";
 
-        // Execute the command
-        passthru($command);
+        // Execute the kubectl cp command
+        passthru($command, $status);
+
+        // Check if the command failed
+        if ($status !== 0) {
+            // An error occurred, handle it here
+            throw new \InvalidArgumentException(
+                "Error: Failed to execute s3 sync. Command run: \n$command"
+            );
+        }
     }
 }

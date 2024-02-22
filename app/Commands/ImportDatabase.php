@@ -131,7 +131,7 @@ class ImportDatabase
         if ($this->s3sync === 'true') {
             $this->syncS3Buckets();
         }
-
+        
         $this->replaceS3BucketNames();
     }
 
@@ -149,8 +149,18 @@ class ImportDatabase
      */
     protected function executeDbImportCommand()
     {
-        $importCommand = "$this->containerExec wp db import $this->fileName";
-        passthru($importCommand);
+        $command = "$this->containerExec wp db import $this->fileName";
+
+        // Execute the kubectl cp command
+        passthru($command, $status);
+
+        // Check if the command failed
+        if ($status !== 0) {
+            // An error occurred, handle it here
+            throw new \InvalidArgumentException(
+                "Error: Failed to execute wp db \n$command"
+            );
+        }
     }
 
     /**
@@ -158,8 +168,17 @@ class ImportDatabase
      */
     protected function removeSqlFileFromContainer()
     {
-        $removeCommand = "$this->containerExec rm $this->fileName";
-        passthru($removeCommand);
+        $command = "$this->containerExec rm $this->fileName";
+                // Execute the kubectl cp command
+        passthru($command, $status);
+
+        // Check if the command failed
+        if ($status !== 0) {
+            // An error occurred, handle it here
+            throw new \InvalidArgumentException(
+                "Error: Failed to execute rm \n$command"
+            );
+        }
     }
 
     /**
