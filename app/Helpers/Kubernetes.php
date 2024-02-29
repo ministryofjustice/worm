@@ -2,6 +2,8 @@
 
 namespace App\Helpers;
 
+use App\Helpers\Docker;
+
 class Kubernetes
 {
     /**
@@ -101,12 +103,14 @@ class Kubernetes
      */
     public function copyDatabaseToContainer($target, $filePath, $fileName, $podName, $container = 'wordpress')
     {
-        // Build the kubectl cp command to copy the file to the Kubernetes container
-        $command = "kubectl cp";
-        $command .= " --retries=10";
-        $command .= " -n hale-platform-$target";
-        $command .= " -c $container";
-        $command .= " $filePath hale-platform-$target/$podName:$fileName";
+     
+        $DockerObject = new Docker();
+
+        if ($target === 'local') {
+            $command = $DockerObject->buildDockerCpCommand($filePath, $fileName);
+        } else {
+            $command = $this->buildKubectlCpCommand($target, $filePath, $fileName, $podName, $container);
+        }
 
         // Execute the kubectl cp command
         passthru($command, $status);
@@ -115,10 +119,34 @@ class Kubernetes
         if ($status !== 0) {
             // An error occurred, handle it here
             throw new \InvalidArgumentException(
-                "Error: Failed to execute kubectl cp command: \n$command"
+                "Error: Failed to execute cp command: \n$command"
             );
         }
     }
+
+    /**
+     * Constructs the kubectl cp command to copy a file to a Kubernetes container with retries.
+     *
+     * @param string $target     The target namespace.
+     * @param string $container  The name of the container within the pod.
+     * @param string $filePath   The path to the file to be copied.
+     * @param string $podName    The name of the pod.
+     * @param string $fileName   The name of the file within the container.
+     * @return string            The constructed kubectl cp command.
+     */
+    private function buildKubectlCpCommand($target, $filePath, $fileName, $podName, $container) {
+        // Set the base kubectl cp command
+        $command = "kubectl cp";
+        
+        // Append options to the command
+        $command .= " --retries=10"; // Adjust the number of retries as needed
+        $command .= " -n hale-platform-$target";
+        $command .= " -c $container";
+        $command .= " $filePath hale-platform-$target/$podName:$fileName";
+
+        return $command;
+    }
+
 
     /**
      * Retrieves the S3 bucket name for a given environment.

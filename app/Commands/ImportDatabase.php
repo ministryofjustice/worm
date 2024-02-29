@@ -124,6 +124,8 @@ class ImportDatabase
     public function runDatabaseImport()
     {
         $this->copyDatabaseToContainer();
+
+        die();
         $this->executeDbImportCommand();
         $this->removeSqlFileFromContainer();
         $this->replaceDatabaseURLs();

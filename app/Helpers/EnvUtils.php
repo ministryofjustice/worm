@@ -69,7 +69,6 @@ class EnvUtils
      */
     public function checkSQLfileIsValid($filePath)
     {
-
         if (!$this->isSqlFile($filePath)) {
             throw new \InvalidArgumentException("File is not an SQL file type. ");
         }
