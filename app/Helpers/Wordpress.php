@@ -66,7 +66,15 @@ class Wordpress
         $command .= " --report-changed-only";
         $command .= " --recurse-objects";
 
-        passthru($command);
+        passthru($command, $status);
+
+        // Check if the command failed
+        if ($status !== 0) {
+            // An error occurred, handle it here
+            throw new \InvalidArgumentException(
+                "Error: Failed to execute wp search-replace \n$command"
+            );
+        }
     }
 
     /**
@@ -78,7 +86,7 @@ class Wordpress
      * @param string $containerExecCommand The command for executing within the container.
      * @return void
      */
-    public function stringReplaceS3BucketName($targetBucket, $sourceBucket, $blogID = null)
+    public function stringReplaceS3BucketName($targetBucket, $sourceBucket, $target, $blogID = null)
     {
         if ($blogID !== null) {
             $extraOptions = "--all-tables-with-prefix 'wp_{$blogID}_*'";
@@ -98,7 +106,16 @@ class Wordpress
         $command .= " --report-changed-only";
         $command .= " --recurse-objects";
 
-        echo "Run s3 bucket string replace: $sourceBucket with $targetBucket ";
-        passthru($command);
+        echo "Run s3 bucket string replace: $sourceBucket with $targetBucket";
+
+        passthru($command, $status);
+
+        // Check if the command failed
+        if ($status !== 0) {
+            // An error occurred, handle it here
+            throw new \InvalidArgumentException(
+                "Error: Failed s3 bucket string replace. Command run: \n$command"
+            );
+        }
     }
 }
