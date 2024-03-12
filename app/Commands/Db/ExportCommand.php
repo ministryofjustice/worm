@@ -45,6 +45,11 @@ class ExportCommand extends Command
 
         $exportDatabase = new ExportDatabase($target, $sqlfile, $blogID);
 
+        if ($target === 'local') {
+            echo 'Error: Worm cannot export local database. Functionality not added.' . PHP_EOL;
+            exit;
+        }
+
         if (is_null($blogID)) {
             $exportDatabase->runExportMultisite();
         }

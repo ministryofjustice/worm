@@ -103,7 +103,6 @@ class Kubernetes
      */
     public function copyDatabaseToContainer($target, $filePath, $fileName, $podName, $container = 'wordpress')
     {
-     
         $DockerObject = new Docker();
 
         if ($target === 'local') {
@@ -111,6 +110,8 @@ class Kubernetes
         } else {
             $command = $this->buildKubectlCpCommand($target, $filePath, $fileName, $podName, $container);
         }
+
+        echo "[*] Copying db file to container" . PHP_EOL;
 
         // Execute the kubectl cp command
         passthru($command, $status);
@@ -250,5 +251,39 @@ class Kubernetes
                 "Error: Failed to execute s3 sync. Command run: \n$command"
             );
         }
+    }
+
+    /**
+     * Retrieves the site slug (path) for a specific blog ID in a WordPress multisite environment.
+     *
+     * @param string $target The target environment.
+     * @param int $blogId The blog ID for which to fetch the site slug.
+     * @param string $wpCliPath The path to the WP-CLI executable (default is 'wp').
+     *
+     * @return string The site slug (path) corresponding to the specified blog ID.
+     */
+    public function getSiteSlugByBlogId($target, $blogID)
+    {
+        // Get the command for executing operations in the container
+        $containerExec = $this->getExecCommand($target);
+
+        // Use the WP-CLI db query command to fetch the site slug for the specified blog ID
+        $command = "$containerExec wp db query 'SELECT path FROM wp_blogs WHERE blog_id = {$blogID}' --skip-column-names";
+        $output = shell_exec($command);
+
+        // Define the regular expression pattern to match the content between the inner slashes
+        $pattern = '/\/(.*?)\//';
+
+        // Perform a regular expression match to find the content between the inner slashes
+        preg_match($pattern, $output, $matches);
+
+        // Extract the matched content from the regex match result
+        if (isset($matches[1])) {
+            $contentBetweenSlashes = $matches[1];
+        } else {
+            $contentBetweenSlashes = "No content found";
+        }
+
+        return $contentBetweenSlashes; // Output: playground
     }
 }

@@ -584,8 +584,8 @@ class MigrateCommand extends Command
      */
     private function nonProductionDatabaseDomainRewrite($env, array $sites, $blogID)
     {
+        $infoMsg = "[*] Rewrite domains, prod to non-prod domain" . PHP_EOL;
 
-        $nonProdDBDomainRewriteText = "Run domain rewrite to swap prod domain with a non-prod domain.";
         $containerExecCommand = $this->getExecCommand($env);
 
         foreach ($sites as $site) {
@@ -595,13 +595,13 @@ class MigrateCommand extends Command
 
             // Only run the rewrite code once and for the matching single site and finish
             if ($this->blogID !== null && $blogID === $siteID) {
-                $this->info($nonProdDBDomainRewriteText);
+                $this->info($infoMsg);
                 $this->performDomainRewriteNonProd($domain, $sitePath, $containerExecCommand, $siteID);
             }
 
             // If we have no blog id being used we are migrating a whole site so loop without restrictions
             if ($this->blogID === null) {
-                $this->info($nonProdDBDomainRewriteText);
+                $this->info($infoMsg);
                 $this->performDomainRewriteNonProd($domain, $sitePath, $containerExecCommand, $siteID);
             }
         }
@@ -977,7 +977,9 @@ class MigrateCommand extends Command
         }
 
         $command = "$containerExecCommand wp search-replace $sourceBucket $targetBucket $urlFlag --network --precise --skip-columns=guid --report-changed-only --recurse-objects";
-        $this->info("Run s3 bucket string replace: $sourceBucket with $targetBucket ");
+        
+        echo "[*] Run s3 bucket string replace: $sourceBucket with $targetBucket " . PHP_EOL;
+
         passthru($command);
     }
 }
