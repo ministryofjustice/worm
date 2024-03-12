@@ -977,7 +977,7 @@ class MigrateCommand extends Command
         }
 
         $command = "$containerExecCommand wp search-replace $sourceBucket $targetBucket $urlFlag --network --precise --skip-columns=guid --report-changed-only --recurse-objects";
-        
+
         echo "[*] Run s3 bucket string replace: $sourceBucket with $targetBucket " . PHP_EOL;
 
         passthru($command);

@@ -227,11 +227,11 @@ class ImportDatabase
             // No need to sync S3 buckets for the local environment
             return;
         }
-    
+
         // Sync S3 buckets between source and target environments
         $this->kubernetesObject->syncS3Buckets($this->target, $this->source, $this->blogID);
     }
-    
+
     /**
      * Perform string replacement of S3 bucket names in the WordPress installation.
      */
@@ -250,27 +250,28 @@ class ImportDatabase
     /**
      * Performs domain rewrite for non-production environments.
      * This method swaps the production domain with a non-production domain.
-     * 
+     *
      * @return void
      */
-    protected function applyDomainRewriteNonProd() {
+    protected function applyDomainRewriteNonProd()
+    {
         // Check if the target environment is production; if so, return early
         if ($this->target === 'prod') {
             return;
         }
-        
+
         // Retrieve the Kubernetes exec command for the target environment
         $containerExecCommand = $this->kubernetesObject->getExecCommand($this->target);
-        
+
         // Retrieve site information from the container object
         $sites = $this->containerObject->get('sites');
-        
+
         // Informational text for the operation
         $infoText = "[*] Rewrite prod domain with a non-prod domain" . PHP_EOL;
-        
+
         // Output the informational text
         echo $infoText;
-        
+
         // Loop through each site in our hardcoded domain site list and rewrite urls
         foreach ($sites as $site) {
             $domain = $site['domain'];
@@ -316,9 +317,9 @@ class ImportDatabase
         $command .= " --network";
         $command .= " --skip-columns=guid";
         $command .= " --report-changed-only";
-            
+
         passthru($command, $status);
-    
+
         // Check if the command failed
         if ($status !== 0) {
             // An error occurred, handle it here
@@ -332,7 +333,7 @@ class ImportDatabase
 
         // 3. Path rewrite
         $this->wordpressObject->replaceDatabasePath($this->target, $sitePath, $siteID);
-    
+
         // Switch plugins on or off depending on environment
         $status = ($this->target === 'local' || $this->target === 'prod') ? 'deactivate' : 'activate';
 

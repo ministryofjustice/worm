@@ -358,7 +358,8 @@ class EnvUtils
      *
      * @return string The non-production domain for the given target environment.
      */
-    public function getNonProdDomain($target): string {
+    public function getNonProdDomain($target): string
+    {
         return $target === 'local' ?
             'hale.docker' :
             "hale-platform-$target.apps.live.cloud-platform.service.justice.gov.uk";

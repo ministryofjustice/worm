@@ -122,7 +122,7 @@ class Wordpress
     /**
      * Execute a WordPress database query.
      *
-     * This function executes a WordPress database query using the WP-CLI `wp db query` command 
+     * This function executes a WordPress database query using the WP-CLI `wp db query` command
      * inside a Kubernetes (or Docker) container.
      *
      * @param string $target      The target environment where the command will be executed.
@@ -130,24 +130,25 @@ class Wordpress
      * @throws InvalidArgumentException If the command execution fails.
      * @return void
      */
-    public function executeWordPressDBQuery($target, $arguments) {
+    public function executeWordPressDBQuery($target, $arguments)
+    {
         // Get the Kubernetes exec command for the target environment
         $containerExec = $this->kubernetesObject->getExecCommand($target);
-    
+
         // Set the base WP-CLI command
         $command = "wp db query";
-    
+
         // Construct the full command
         $fullCommand = "$containerExec $command";
-    
+
         // Append arguments to the command
         if (!empty($arguments)) {
             $fullCommand .= ' ' . implode(' ', $arguments);
         }
-        
+
         // Execute the command using passthru
         passthru($fullCommand, $status);
-    
+
         // Check if the command failed
         if ($status !== 0) {
             // An error occurred, handle it here
@@ -175,13 +176,13 @@ class Wordpress
     {
         // Retrieve the Kubernetes exec command for the target environment
         $containerExec = $this->kubernetesObject->getExecCommand($target);
-        
+
         // Construct the command to execute for modifying the plugin status
         $command = "$containerExec wp plugin $option $pluginName --url=$nonProdDomain";
-        
+
         // Execute the constructed command
         passthru($command, $status);
-    
+
         // Check if the command failed
         if ($status !== 0) {
             // An error occurred, handle it here
@@ -206,7 +207,7 @@ class Wordpress
         try {
             // Construct the SQL query to update the 'wp_blogs' table
             $arguments = ["'UPDATE wp_blogs SET domain=\"$domain\" WHERE wp_blogs.blog_id=$blogID'"];
-    
+
             // Execute the WordPress database query
             $this->executeWordPressDBQuery($target, $arguments);
         } catch (Exception $e) {
@@ -231,7 +232,7 @@ class Wordpress
         try {
             // Construct the SQL query to update the 'wp_blogs' table
             $arguments = ["'UPDATE wp_blogs SET path=\"/$siteSlug/\" WHERE wp_blogs.blog_id=$blogID'"];
-    
+
             // Execute the WordPress database query
             $this->executeWordPressDBQuery($target, $arguments);
         } catch (Exception $e) {
@@ -240,5 +241,4 @@ class Wordpress
             throw $e; // Re-throw the exception to propagate it further
         }
     }
-
 }

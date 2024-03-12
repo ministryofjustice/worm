@@ -135,10 +135,11 @@ class Kubernetes
      * @param string $fileName   The name of the file within the container.
      * @return string            The constructed kubectl cp command.
      */
-    private function buildKubectlCpCommand($target, $filePath, $fileName, $podName, $container) {
+    private function buildKubectlCpCommand($target, $filePath, $fileName, $podName, $container)
+    {
         // Set the base kubectl cp command
         $command = "kubectl cp";
-        
+
         // Append options to the command
         $command .= " --retries=10"; // Adjust the number of retries as needed
         $command .= " -n hale-platform-$target";
