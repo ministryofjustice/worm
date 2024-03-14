@@ -111,13 +111,8 @@ class ImportCommand extends Command
         $target = $this->argument('target');
 
         if ($target === 'prod') {
-            $proceed = $this->ask('### WARNING ### You are running a command against prod. Do you wish to proceed? y/n');
-
-            // If not "yes", then exit.
-            if ($proceed !== 'yes' && $proceed !== 'y') {
-                $this->info("Command canceled. Exiting task.");
-                exit(0);
-            }
+            echo 'You cannot import to prod. Functionality not yet added.' . PHP_EOL;
+            exit;
         }
     }
 }

@@ -69,7 +69,6 @@ class EnvUtils
      */
     public function checkSQLfileIsValid($filePath)
     {
-
         if (!$this->isSqlFile($filePath)) {
             throw new \InvalidArgumentException("File is not an SQL file type. ");
         }
@@ -111,6 +110,11 @@ class EnvUtils
      */
     public function getDomain($env, $blogID = null)
     {
+
+        if ($env === 'local') {
+            return "hale.docker";
+        }
+
         // SSOT hardcoded list of production domains
         // List can be updated in the SiteList.php
         $container = Container::getInstance();
@@ -152,7 +156,6 @@ class EnvUtils
         // Return null if no match
         return null;
     }
-
 
     /**
      * Check if the given filename indicates a multsite database file.
@@ -332,7 +335,7 @@ class EnvUtils
      */
     public function updateCloudPlatformCli()
     {
-        echo "Checking cloud-platform-cli status on the system..." . PHP_EOL;
+        echo "[*] Checking cloud-platform-cli status on the system" . PHP_EOL;
 
         // Execute the Homebrew command to update and upgrade the cloud-platform-cli package
         exec("brew update && brew upgrade cloud-platform-cli 2>/dev/null", $output, $resultCode);
@@ -344,5 +347,21 @@ class EnvUtils
                 "Failed to update and upgrade the cloud-platform-cli package. Exiting."
             );
         }
+    }
+
+    /**
+     * Get the non-production domain based on the target environment.
+     *
+     * This method returns the appropriate non-production domain based on the specified target environment.
+     * If the target is set to 'local', the domain 'hale.docker' is returned. For other non-production environments,
+     * the domain follows the pattern "hale-platform-[TARGET].apps.live.cloud-platform.service.justice.gov.uk".
+     *
+     * @return string The non-production domain for the given target environment.
+     */
+    public function getNonProdDomain($target): string
+    {
+        return $target === 'local' ?
+            'hale.docker' :
+            "hale-platform-$target.apps.live.cloud-platform.service.justice.gov.uk";
     }
 }
