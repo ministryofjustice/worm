@@ -72,7 +72,7 @@ you are in the correct namespace ie `kubens hale-platform-dev`.
 
 ### Database download
 
-`worm db:export` or a specific site db `worm db:export --blogID[=BLOGID]`
+`worm db:export [environment]` or a specific site db `worm db:export --blogID[=BLOGID]`
 
 ### Database upload
 
