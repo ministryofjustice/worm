@@ -82,6 +82,12 @@ $sites = [
     ],
 
     [
+        "blogID" => 25,
+        "domain" => "sifocc.org",
+        "path" => "sifocc",
+    ],
+
+    [
         "blogID" => 29,
         "domain" => "brookhouseinquiry.org.uk",
         "path" => "brookhouse",
@@ -110,13 +116,6 @@ $sites = [
         "domain" => "ppo.gov.uk",
         "path" => "ppo",
     ],
-
-    [
-        "blogID" => 36,
-        "domain" => "sifocc.org",
-        "path" => "sifocc",
-    ],
-
     [
         "blogID" => 37,
         "domain" => "my.imb.org.uk",
@@ -133,6 +132,12 @@ $sites = [
         "blogID" => 40,
         "domain" => "newfuturesnetwork.gov.uk",
         "path" => "nfn",
+    ],
+
+    [
+        "blogID" => 41,
+        "domain" => "andrewmalkinson.independent-inquiry.uk",
+        "path" => "omagh",
     ],
 
     [
