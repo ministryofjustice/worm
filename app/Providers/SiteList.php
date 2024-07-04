@@ -76,6 +76,12 @@ $sites = [
     ],
 
     [
+        "blogID" => 19,
+        "domain" => "hmiprisons.justiceinspectorates.gov.uk",
+        "path" => "hmip",
+    ],
+
+    [
         "blogID" => 23,
         "domain" => "nationalpreventivemechanism.org.uk",
         "path" => "npm",
@@ -144,6 +150,12 @@ $sites = [
         "blogID" => 42,
         "domain" => "omagh.independent-inquiry.uk",
         "path" => "omagh",
+    ],
+
+    [
+        "blogID" => 49,
+        "domain" => "showcase.websitebuilder.service.justice.gov.uk",
+        "path" => "showcase",
     ]
 
 ];
