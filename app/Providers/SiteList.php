@@ -58,6 +58,12 @@ $sites = [
     ],
 
     [
+        "blogID" => 14,
+        "domain" => "ppo.gov.uk",
+        "path" => "ppo",
+    ],
+
+    [
         "blogID" => 15,
         "domain" => "victimandwitnessinformation.org.uk",
         "path" => "vw",
@@ -119,9 +125,10 @@ $sites = [
 
     [
         "blogID" => 34,
-        "domain" => "ppo.gov.uk",
-        "path" => "ppo",
+        "domain" => "archive.ppo.gov.uk",
+        "path" => "ppo-archive",
     ],
+
     [
         "blogID" => 37,
         "domain" => "my.imb.org.uk",
@@ -143,7 +150,7 @@ $sites = [
     [
         "blogID" => 41,
         "domain" => "andrewmalkinson.independent-inquiry.uk",
-        "path" => "omagh",
+        "path" => "mi",
     ],
 
     [
