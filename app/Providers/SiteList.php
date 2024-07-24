@@ -144,7 +144,7 @@ $sites = [
     [
         "blogID" => 41,
         "domain" => "andrewmalkinson.independent-inquiry.uk",
-        "path" => "omagh",
+        "path" => "mi",
     ],
 
     [
