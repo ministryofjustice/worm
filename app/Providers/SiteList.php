@@ -100,6 +100,12 @@ $sites = [
     ],
 
     [
+        "blogID" => 26,
+        "domain" => "https://members.layobservers.org/",
+        "path" => "layobsmembers",
+    ],
+
+    [
         "blogID" => 29,
         "domain" => "brookhouseinquiry.org.uk",
         "path" => "brookhouse",
@@ -128,6 +134,11 @@ $sites = [
         "domain" => "archive.ppo.gov.uk",
         "path" => "ppo-archive",
     ],
+
+    [
+        "blogID" => 35,
+        "domain" => "intranet.icrir.independent-inquiry.uk",
+        "path" => "icrir-intranet",
 
     [
         "blogID" => 37,
