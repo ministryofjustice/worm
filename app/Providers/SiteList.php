@@ -100,6 +100,12 @@ $sites = [
     ],
 
     [
+        "blogID" => 26,
+        "domain" => "https://members.layobservers.org/",
+        "path" => "layobsmembers",
+    ],
+
+    [
         "blogID" => 29,
         "domain" => "brookhouseinquiry.org.uk",
         "path" => "brookhouse",
@@ -130,42 +136,47 @@ $sites = [
     ],
 
     [
+        "blogID" => 35,
+        "domain" => "intranet.icrir.independent-inquiry.uk",
+        "path" => "icrir-intranet",
+
+    [
         "blogID" => 37,
         "domain" => "my.imb.org.uk",
         "path" => "imbmembers-leg",
-    ],
+        ],
 
-    [
+        [
         "blogID" => 39,
         "domain" => "members.layobservers.org",
         "path" => "layobservers-members",
-    ],
+        ],
 
-    [
+        [
         "blogID" => 40,
         "domain" => "newfuturesnetwork.gov.uk",
         "path" => "nfn",
-    ],
+        ],
 
-    [
+        [
         "blogID" => 41,
         "domain" => "andrewmalkinson.independent-inquiry.uk",
         "path" => "mi",
-    ],
+        ],
 
-    [
+        [
         "blogID" => 42,
         "domain" => "omagh.independent-inquiry.uk",
         "path" => "omagh",
-    ],
+        ],
 
-    [
+        [
         "blogID" => 49,
         "domain" => "showcase.websitebuilder.service.justice.gov.uk",
         "path" => "showcase",
-    ]
+        ]
 
-];
+    ];
 
 
-$container->instance('sites', $sites);
+    $container->instance('sites', $sites);
