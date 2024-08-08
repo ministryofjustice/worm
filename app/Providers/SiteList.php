@@ -113,7 +113,7 @@ $sites = [
 
     [
         "blogID" => 24,
-        "domain" => "websitebuilder.service.justice.gov.u/hmcpsi",
+        "domain" => "websitebuilder.service.justice.gov.uk/hmcpsi",
         "path" => "hmcpsi",
     ],
 
