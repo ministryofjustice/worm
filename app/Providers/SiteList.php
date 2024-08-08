@@ -16,6 +16,12 @@ $container = Container::getInstance();
 
 $sites = [
     [
+        "blogID" => 2,
+        "domain" => "websitebuilder.service.justice.gov.uk/playground",
+        "path" => "playground",
+    ],
+
+    [
         "blogID" => 3,
         "domain" => "magistrates.judiciary.uk",
         "path" => "magistrates",
@@ -37,6 +43,12 @@ $sites = [
         "blogID" => 7,
         "domain" => "layobservers.org",
         "path" => "lo",
+    ],
+
+    [
+        "blogID" => 8,
+        "domain" => "websitebuilder.service.justice.gov.uk/hale-help",
+        "path" => "hale-help",
     ],
 
     [
@@ -88,9 +100,21 @@ $sites = [
     ],
 
     [
+        "blogID" => 22,
+        "domain" => "websitebuilder.service.justice.gov.uk/imbmembers",
+        "path" => "imbmembers",
+    ],
+
+    [
         "blogID" => 23,
         "domain" => "nationalpreventivemechanism.org.uk",
         "path" => "npm",
+    ],
+
+    [
+        "blogID" => 24,
+        "domain" => "websitebuilder.service.justice.gov.u/hmcpsi",
+        "path" => "hmcpsi",
     ],
 
     [
@@ -103,6 +127,18 @@ $sites = [
         "blogID" => 26,
         "domain" => "https://members.layobservers.org/",
         "path" => "layobsmembers",
+    ],
+
+    [
+        "blogID" => 27,
+        "domain" => "websitebuilder.service.justice.gov.uk/core",
+        "path" => "core",
+    ],
+
+    [
+        "blogID" => 28,
+        "domain" => "websitebuilder.service.justice.gov.uk/hale-design-history",
+        "path" => "hale-design-history",
     ],
 
     [
@@ -124,6 +160,12 @@ $sites = [
     ],
 
     [
+        "blogID" => 32,
+        "domain" => "websitebuilder.service.justice.gov.uk/hmi-probation",
+        "path" => "hmi-probation",
+    ],
+
+    [
         "blogID" => 33,
         "domain" => "cym.victimandwitnessinformation.org.uk",
         "path" => "vwcy",
@@ -139,44 +181,92 @@ $sites = [
         "blogID" => 35,
         "domain" => "intranet.icrir.independent-inquiry.uk",
         "path" => "icrir-intranet",
+    ],
 
     [
         "blogID" => 37,
         "domain" => "my.imb.org.uk",
         "path" => "imbmembers-leg",
-        ],
+    ],
 
-        [
+    [
         "blogID" => 39,
         "domain" => "members.layobservers.org",
         "path" => "layobservers-members",
-        ],
+    ],
 
-        [
+    [
         "blogID" => 40,
         "domain" => "newfuturesnetwork.gov.uk",
         "path" => "nfn",
-        ],
+    ],
 
-        [
+    [
         "blogID" => 41,
         "domain" => "andrewmalkinson.independent-inquiry.uk",
         "path" => "mi",
-        ],
+    ],
 
-        [
+    [
         "blogID" => 42,
         "domain" => "omagh.independent-inquiry.uk",
         "path" => "omagh",
-        ],
+    ],
 
-        [
+    [
+        "blogID" => 43,
+        "domain" => "websitebuilder.service.justice.gov.uk/cjji",
+        "path" => "cjji",
+    ],
+
+    [
+        "blogID" => 45,
+        "domain" => "websitebuilder.service.justice.gov.uk/ccrc-launchpad",
+        "path" => "ccrc-launchpad",
+    ],
+
+    [
+        "blogID" => 46,
+        "domain" => "websitebuilder.service.justice.gov.uk/laajobs",
+        "path" => "laajobs",
+    ],
+
+    [
+        "blogID" => 47,
+        "domain" => "websitebuilder.service.justice.gov.uk/laalearning",
+        "path" => "laalearning",
+    ],
+
+    [
+        "blogID" => 48,
+        "domain" => "websitebuilder.service.justice.gov.uk/website-builder",
+        "path" => "website-builder",
+    ],
+
+    [
         "blogID" => 49,
         "domain" => "showcase.websitebuilder.service.justice.gov.uk",
         "path" => "showcase",
-        ]
+    ],
 
-    ];
+    [
+        "blogID" => 50,
+        "domain" => "websitebuilder.service.justice.gov.uk/vwi",
+        "path" => "vwi",
+    ],
+
+    [
+        "blogID" => 51,
+        "domain" => "websitebuilder.service.justice.gov.uk/nipubhistory",
+        "path" => "nipubhistory",
+    ],
+
+    [
+        "blogID" => 52,
+        "domain" => "websitebuilder.service.justice.gov.uk/pecs",
+        "path" => "pecs",
+    ]
+];
 
 
     $container->instance('sites', $sites);
