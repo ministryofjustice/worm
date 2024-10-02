@@ -552,8 +552,19 @@ class MigrateCommand extends Command
     private function replaceDatabaseURLs($env, $blogID)
     {
         // Define the old and new URLs based on the environment names
-        $sourceSiteURL = "hale-platform-$this->source.apps.live.cloud-platform.service.justice.gov.uk";
-        $targetSiteURL = "hale-platform-$this->target.apps.live.cloud-platform.service.justice.gov.uk";
+        if($this->source == "dev"){
+            $sourceSiteURL = "$this->source.websitebuilder.service.justice.gov.uk";
+        }
+        else {
+            $sourceSiteURL = "hale-platform-$this->source.apps.live.cloud-platform.service.justice.gov.uk";
+        }
+
+        if($this->target == "dev"){
+            $targetSiteURL = "$this->target.websitebuilder.service.justice.gov.uk";
+        }
+        else {
+            $targetSiteURL = "hale-platform-$this->target.apps.live.cloud-platform.service.justice.gov.uk";
+        }
 
         // Get the pod execution command for the specified environment
         $containerExecCommand = $this->getExecCommand($env);
