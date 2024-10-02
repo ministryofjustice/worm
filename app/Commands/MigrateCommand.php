@@ -552,17 +552,15 @@ class MigrateCommand extends Command
     private function replaceDatabaseURLs($env, $blogID)
     {
         // Define the old and new URLs based on the environment names
-        if($this->source == "dev"){
+        if ($this->source == "dev") {
             $sourceSiteURL = "$this->source.websitebuilder.service.justice.gov.uk";
-        }
-        else {
+        } else {
             $sourceSiteURL = "hale-platform-$this->source.apps.live.cloud-platform.service.justice.gov.uk";
         }
 
-        if($this->target == "dev"){
+        if ($this->target == "dev") {
             $targetSiteURL = "$this->target.websitebuilder.service.justice.gov.uk";
-        }
-        else {
+        } else {
             $targetSiteURL = "hale-platform-$this->target.apps.live.cloud-platform.service.justice.gov.uk";
         }
 
