@@ -312,7 +312,7 @@ class ImportDatabase
 
         // 1. Search and replace rewrite
         // Use siteID not blogID, so that only that domain is targeted in the rewrite
-        $command = "$this->containerExec wp search-replace 'https://$domain' 'https://$newURL'";
+        $command = "$this->containerExec wp search-replace '$domain' '$newURL'";
         $command .= " --all-tables-with-prefix 'wp_{$siteID}_*'";
         $command .= " --network";
         $command .= " --skip-columns=guid";
