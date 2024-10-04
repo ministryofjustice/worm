@@ -131,12 +131,16 @@ class EnvUtils
                 if ($blogID == $siteID) {
                     return $domain;
                 } else {
-                    return "hale-platform-prod.apps.live.cloud-platform.service.justice.gov.uk/$sitePath";
+                    return "websitebuilder.service.justice.gov.uk/$sitePath";
                 }
             }
         }
 
-        return "hale-platform-$env.apps.live.cloud-platform.service.justice.gov.uk";
+        if ($env == 'prod' && is_null($blogID)) {
+            return "websitebuilder.service.justice.gov.uk";
+        }
+
+        return "$env.websitebuilder.service.justice.gov.uk";
     }
 
 
@@ -354,7 +358,7 @@ class EnvUtils
      *
      * This method returns the appropriate non-production domain based on the specified target environment.
      * If the target is set to 'local', the domain 'hale.docker' is returned. For other non-production environments,
-     * the domain follows the pattern "hale-platform-[TARGET].apps.live.cloud-platform.service.justice.gov.uk".
+     * the domain follows the pattern "[TARGET].websitebuilder.service.justice.gov.uk".
      *
      * @return string The non-production domain for the given target environment.
      */
@@ -362,6 +366,6 @@ class EnvUtils
     {
         return $target === 'local' ?
             'hale.docker' :
-            "hale-platform-$target.apps.live.cloud-platform.service.justice.gov.uk";
+            "$target.websitebuilder.service.justice.gov.uk";
     }
 }
