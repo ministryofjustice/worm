@@ -131,9 +131,13 @@ class EnvUtils
                 if ($blogID == $siteID) {
                     return $domain;
                 } else {
-                    return "prod.websitebuilder.service.justice.gov.uk/$sitePath";
+                    return "websitebuilder.service.justice.gov.uk/$sitePath";
                 }
             }
+        }
+
+        if ($env == 'prod' && is_null($blogID)) {
+            return "websitebuilder.service.justice.gov.uk";
         }
 
         return "$env.websitebuilder.service.justice.gov.uk";
