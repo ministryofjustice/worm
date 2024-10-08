@@ -552,8 +552,10 @@ class MigrateCommand extends Command
     private function replaceDatabaseURLs($env, $blogID)
     {
         // Define the old and new URLs based on the environment names
-        $sourceSiteURL = "hale-platform-$this->source.apps.live.cloud-platform.service.justice.gov.uk";
-        $targetSiteURL = "hale-platform-$this->target.apps.live.cloud-platform.service.justice.gov.uk";
+      
+        $sourceSiteURL = "$this->source.websitebuilder.service.justice.gov.uk";
+
+        $targetSiteURL = "$this->target.websitebuilder.service.justice.gov.uk";
 
         // Get the pod execution command for the specified environment
         $containerExecCommand = $this->getExecCommand($env);
@@ -610,7 +612,7 @@ class MigrateCommand extends Command
     /**
      * Perform domain rewrite when migrating from a non-prod => prod environment
      * For example:
-     * hale-platform-$this->target.apps.live.cloud-platform.service.justice.gov.uk/ccrc -> ccrc.gov.uk
+     * $this->target.websitebuilder.service.justice.gov.uk/ccrc -> ccrc.gov.uk
      *
      * @param string $env The target environment name.
      * @param array $sites The array of site details.
@@ -657,7 +659,7 @@ class MigrateCommand extends Command
         $containerExecCommand = $this->getExecCommand($target);
         $servicePodName = $this->getServicePodName($source);
 
-        $targetSiteURL = "hale-platform-$target.apps.live.cloud-platform.service.justice.gov.uk";
+        $targetSiteURL = "$target.websitebuilder.service.justice.gov.uk";
 
         $sourceBucketsecretName = $this->getSecretName($source);
         $sourceBucketsecrets = $this->decodeSecrets($source);
@@ -820,7 +822,7 @@ class MigrateCommand extends Command
     {
 
         // Define the old and new URLs based on the environment names
-        $sourceSiteURL = "hale-platform-$this->source.apps.live.cloud-platform.service.justice.gov.uk";
+        $sourceSiteURL = "$this->source.websitebuilder.service.justice.gov.uk";
         $targetSiteURL = "hale.docker";
 
         if ($this->blogID !== null) {
@@ -891,7 +893,7 @@ class MigrateCommand extends Command
      */
     private function performDomainRewriteProd(string $domain, string $sitePath, string $containerExecCommand, int $siteID)
     {
-        $domainPath = "https://hale-platform-$this->target.apps.live.cloud-platform.service.justice.gov.uk/$sitePath";
+        $domainPath = "$this->target.websitebuilder.service.justice.gov.uk/$sitePath";
 
         $this->info($domain);
 
@@ -929,8 +931,8 @@ class MigrateCommand extends Command
             $newDomainPath = "hale.docker";
             $domainPath = "https://hale.docker/$sitePath";
         } else {
-            $newDomainPath = "hale-platform-$this->target.apps.live.cloud-platform.service.justice.gov.uk";
-            $domainPath = "https://hale-platform-$this->target.apps.live.cloud-platform.service.justice.gov.uk/$sitePath";
+            $newDomainPath = "$this->target.websitebuilder.service.justice.gov.uk";
+            $domainPath = "https://$this->target.websitebuilder.service.justice.gov.uk/$sitePath";
         }
 
         $this->info($domain);
