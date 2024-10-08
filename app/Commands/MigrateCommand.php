@@ -552,7 +552,7 @@ class MigrateCommand extends Command
     private function replaceDatabaseURLs($env, $blogID)
     {
         // Define the old and new URLs based on the environment names
-      
+
         $sourceSiteURL = "$this->source.websitebuilder.service.justice.gov.uk";
 
         $targetSiteURL = "$this->target.websitebuilder.service.justice.gov.uk";
