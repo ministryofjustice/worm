@@ -88,6 +88,12 @@ $sites = [
     ],
 
     [
+        "blogID" => 17,
+        "domain" => "bold.websitebuilder.service.justice.gov.uk",
+        "path" => "bold",
+    ],
+
+    [
         "blogID" => 18,
         "domain" => "prisonandprobationjobs.gov.uk",
         "path" => "ppj",
@@ -97,6 +103,18 @@ $sites = [
         "blogID" => 19,
         "domain" => "hmiprisons.justiceinspectorates.gov.uk",
         "path" => "hmip",
+    ],
+
+    [
+        "blogID" => 20,
+        "domain" => "intranet.hmiprisons.justiceinspectorates.gov.uk",
+        "path" => "hmipintranet",
+    ],
+
+    [
+        "blogID" => 21,
+        "domain" => "iapdeathsincustody.independent.gov.uk",
+        "path" => "iapdc",
     ],
 
     [
@@ -265,6 +283,42 @@ $sites = [
         "blogID" => 52,
         "domain" => "websitebuilder.service.justice.gov.uk/pecs",
         "path" => "pecs",
+    ],
+
+    [
+        "blogID" => 53,
+        "domain" => "hmppsinsights.service.justice.gov.uk",
+        "path" => "hmppsinsights",
+    ],
+
+    [
+        "blogID" => 54,
+        "domain" => "websitebuilder.service.justice.gov.uk/lawcomm",
+        "path" => "lawcomm",
+    ],
+
+    [
+        "blogID" => 55,
+        "domain" => "cym.victimandwitnessinformation.org.uk",
+        "path" => "vwicy",
+    ],
+
+    [
+        "blogID" => 56,
+        "domain" => "websitebuilder.service.justice.gov.uk/cjsm",
+        "path" => "cjsm",
+    ],
+
+    [
+        "blogID" => 57,
+        "domain" => "websitebuilder.service.justice.gov.uk/ipa",
+        "path" => "ipa",
+    ],
+
+    [
+        "blogID" => 58,
+        "domain" => "websitebuilder.service.justice.gov.uk/research-community",
+        "path" => "research-community",
     ]
 ];
 
