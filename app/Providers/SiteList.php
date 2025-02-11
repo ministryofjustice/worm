@@ -149,7 +149,7 @@ $sites = [
 
     [
         "blogID" => 26,
-        "domain" => "https://members.layobservers.org/",
+        "domain" => "members.layobservers.org",
         "path" => "layobsmembers",
     ],
 
