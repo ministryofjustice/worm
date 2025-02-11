@@ -16,12 +16,6 @@ $container = Container::getInstance();
 
 $sites = [
     [
-        "blogID" => 2,
-        "domain" => "websitebuilder.service.justice.gov.uk/playground",
-        "path" => "playground",
-    ],
-
-    [
         "blogID" => 3,
         "domain" => "magistrates.judiciary.uk",
         "path" => "magistrates",
@@ -43,12 +37,6 @@ $sites = [
         "blogID" => 7,
         "domain" => "layobservers.org",
         "path" => "lo",
-    ],
-
-    [
-        "blogID" => 8,
-        "domain" => "websitebuilder.service.justice.gov.uk/hale-help",
-        "path" => "hale-help",
     ],
 
     [
@@ -88,6 +76,12 @@ $sites = [
     ],
 
     [
+        "blogID" => 17,
+        "domain" => "bold.websitebuilder.service.justice.gov.uk",
+        "path" => "bold",
+    ],
+
+    [
         "blogID" => 18,
         "domain" => "prisonandprobationjobs.gov.uk",
         "path" => "ppj",
@@ -100,21 +94,21 @@ $sites = [
     ],
 
     [
-        "blogID" => 22,
-        "domain" => "websitebuilder.service.justice.gov.uk/imbmembers",
-        "path" => "imbmembers",
+        "blogID" => 20,
+        "domain" => "intranet.hmiprisons.justiceinspectorates.gov.uk",
+        "path" => "hmipintranet",
+    ],
+
+    [
+        "blogID" => 21,
+        "domain" => "iapdeathsincustody.independent.gov.uk",
+        "path" => "iapdc",
     ],
 
     [
         "blogID" => 23,
         "domain" => "nationalpreventivemechanism.org.uk",
         "path" => "npm",
-    ],
-
-    [
-        "blogID" => 24,
-        "domain" => "websitebuilder.service.justice.gov.uk/hmcpsi",
-        "path" => "hmcpsi",
     ],
 
     [
@@ -125,20 +119,8 @@ $sites = [
 
     [
         "blogID" => 26,
-        "domain" => "https://members.layobservers.org/",
+        "domain" => "members.layobservers.org",
         "path" => "layobsmembers",
-    ],
-
-    [
-        "blogID" => 27,
-        "domain" => "websitebuilder.service.justice.gov.uk/core",
-        "path" => "core",
-    ],
-
-    [
-        "blogID" => 28,
-        "domain" => "websitebuilder.service.justice.gov.uk/hale-design-history",
-        "path" => "hale-design-history",
     ],
 
     [
@@ -157,12 +139,6 @@ $sites = [
         "blogID" => 31,
         "domain" => "jobs.justice.gov.uk",
         "path" => "jj",
-    ],
-
-    [
-        "blogID" => 32,
-        "domain" => "websitebuilder.service.justice.gov.uk/hmi-probation",
-        "path" => "hmi-probation",
     ],
 
     [
@@ -214,57 +190,27 @@ $sites = [
     ],
 
     [
-        "blogID" => 43,
-        "domain" => "websitebuilder.service.justice.gov.uk/cjji",
-        "path" => "cjji",
-    ],
-
-    [
-        "blogID" => 45,
-        "domain" => "websitebuilder.service.justice.gov.uk/ccrc-launchpad",
-        "path" => "ccrc-launchpad",
-    ],
-
-    [
-        "blogID" => 46,
-        "domain" => "websitebuilder.service.justice.gov.uk/laajobs",
-        "path" => "laajobs",
-    ],
-
-    [
-        "blogID" => 47,
-        "domain" => "websitebuilder.service.justice.gov.uk/laalearning",
-        "path" => "laalearning",
-    ],
-
-    [
-        "blogID" => 48,
-        "domain" => "websitebuilder.service.justice.gov.uk/website-builder",
-        "path" => "website-builder",
-    ],
-
-    [
         "blogID" => 49,
         "domain" => "showcase.websitebuilder.service.justice.gov.uk",
         "path" => "showcase",
     ],
 
     [
-        "blogID" => 50,
-        "domain" => "websitebuilder.service.justice.gov.uk/vwi",
-        "path" => "vwi",
+        "blogID" => 53,
+        "domain" => "hmppsinsights.service.justice.gov.uk",
+        "path" => "hmppsinsights",
     ],
 
     [
-        "blogID" => 51,
-        "domain" => "websitebuilder.service.justice.gov.uk/nipubhistory",
-        "path" => "nipubhistory",
+        "blogID" => 55,
+        "domain" => "cym.victimandwitnessinformation.org.uk",
+        "path" => "vwicy",
     ],
 
     [
-        "blogID" => 52,
-        "domain" => "websitebuilder.service.justice.gov.uk/pecs",
-        "path" => "pecs",
+        "blogID" => 59,
+        "domain" => "dashboard.websitebuilder.service.justice.gov.uk",
+        "path" => "dashboard",
     ]
 ];
 
