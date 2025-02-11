@@ -16,18 +16,6 @@ $container = Container::getInstance();
 
 $sites = [
     [
-        "blogID" => 1,
-        "domain" => "websitebuilder.service.justice.gov.uk",
-        "path" => "",
-    ],
-
-    [
-        "blogID" => 2,
-        "domain" => "websitebuilder.service.justice.gov.uk/playground",
-        "path" => "playground",
-    ],
-
-    [
         "blogID" => 3,
         "domain" => "magistrates.judiciary.uk",
         "path" => "magistrates",
@@ -49,12 +37,6 @@ $sites = [
         "blogID" => 7,
         "domain" => "layobservers.org",
         "path" => "lo",
-    ],
-
-    [
-        "blogID" => 8,
-        "domain" => "websitebuilder.service.justice.gov.uk/hale-help",
-        "path" => "hale-help",
     ],
 
     [
@@ -124,21 +106,9 @@ $sites = [
     ],
 
     [
-        "blogID" => 22,
-        "domain" => "websitebuilder.service.justice.gov.uk/imbmembers",
-        "path" => "imbmembers",
-    ],
-
-    [
         "blogID" => 23,
         "domain" => "nationalpreventivemechanism.org.uk",
         "path" => "npm",
-    ],
-
-    [
-        "blogID" => 24,
-        "domain" => "websitebuilder.service.justice.gov.uk/hmcpsi",
-        "path" => "hmcpsi",
     ],
 
     [
@@ -151,18 +121,6 @@ $sites = [
         "blogID" => 26,
         "domain" => "members.layobservers.org",
         "path" => "layobsmembers",
-    ],
-
-    [
-        "blogID" => 27,
-        "domain" => "websitebuilder.service.justice.gov.uk/core",
-        "path" => "core",
-    ],
-
-    [
-        "blogID" => 28,
-        "domain" => "websitebuilder.service.justice.gov.uk/hale-design-history",
-        "path" => "hale-design-history",
     ],
 
     [
@@ -181,12 +139,6 @@ $sites = [
         "blogID" => 31,
         "domain" => "jobs.justice.gov.uk",
         "path" => "jj",
-    ],
-
-    [
-        "blogID" => 32,
-        "domain" => "websitebuilder.service.justice.gov.uk/hmi-probation",
-        "path" => "hmi-probation",
     ],
 
     [
@@ -238,57 +190,9 @@ $sites = [
     ],
 
     [
-        "blogID" => 43,
-        "domain" => "websitebuilder.service.justice.gov.uk/cjji",
-        "path" => "cjji",
-    ],
-
-    [
-        "blogID" => 45,
-        "domain" => "websitebuilder.service.justice.gov.uk/ccrc-launchpad",
-        "path" => "ccrc-launchpad",
-    ],
-
-    [
-        "blogID" => 46,
-        "domain" => "websitebuilder.service.justice.gov.uk/laajobs",
-        "path" => "laajobs",
-    ],
-
-    [
-        "blogID" => 47,
-        "domain" => "websitebuilder.service.justice.gov.uk/laalearning",
-        "path" => "laalearning",
-    ],
-
-    [
-        "blogID" => 48,
-        "domain" => "websitebuilder.service.justice.gov.uk/website-builder",
-        "path" => "website-builder",
-    ],
-
-    [
         "blogID" => 49,
         "domain" => "showcase.websitebuilder.service.justice.gov.uk",
         "path" => "showcase",
-    ],
-
-    [
-        "blogID" => 50,
-        "domain" => "websitebuilder.service.justice.gov.uk/vwi",
-        "path" => "vwi",
-    ],
-
-    [
-        "blogID" => 51,
-        "domain" => "websitebuilder.service.justice.gov.uk/nipubhistory",
-        "path" => "nipubhistory",
-    ],
-
-    [
-        "blogID" => 52,
-        "domain" => "websitebuilder.service.justice.gov.uk/pecs",
-        "path" => "pecs",
     ],
 
     [
@@ -298,33 +202,9 @@ $sites = [
     ],
 
     [
-        "blogID" => 54,
-        "domain" => "websitebuilder.service.justice.gov.uk/lawcomm",
-        "path" => "lawcomm",
-    ],
-
-    [
         "blogID" => 55,
         "domain" => "cym.victimandwitnessinformation.org.uk",
         "path" => "vwicy",
-    ],
-
-    [
-        "blogID" => 56,
-        "domain" => "websitebuilder.service.justice.gov.uk/cjsm",
-        "path" => "cjsm",
-    ],
-
-    [
-        "blogID" => 57,
-        "domain" => "websitebuilder.service.justice.gov.uk/ipa",
-        "path" => "ipa",
-    ],
-
-    [
-        "blogID" => 58,
-        "domain" => "websitebuilder.service.justice.gov.uk/research-community",
-        "path" => "research-community",
     ],
 
     [
