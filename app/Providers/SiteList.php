@@ -16,6 +16,12 @@ $container = Container::getInstance();
 
 $sites = [
     [
+        "blogID" => 1,
+        "domain" => "websitebuilder.service.justice.gov.uk",
+        "path" => "",
+    ],
+
+    [
         "blogID" => 2,
         "domain" => "websitebuilder.service.justice.gov.uk/playground",
         "path" => "playground",
@@ -319,6 +325,12 @@ $sites = [
         "blogID" => 58,
         "domain" => "websitebuilder.service.justice.gov.uk/research-community",
         "path" => "research-community",
+    ],
+
+    [
+        "blogID" => 59,
+        "domain" => "dashboard.websitebuilder.service.justice.gov.uk",
+        "path" => "dashboard",
     ]
 ];
 
