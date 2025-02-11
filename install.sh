@@ -40,7 +40,7 @@ then
 fi
 
 # Build binary of latest worm
-php worm app:build --build-version=0.7.0 --no-interaction
+php worm app:build --build-version=1.0.0 --no-interaction
 
 # System link to add build to local $PATH
 sudo ln -s $dir/builds/worm /usr/local/bin/worm
