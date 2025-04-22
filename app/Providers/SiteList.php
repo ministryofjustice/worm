@@ -211,6 +211,18 @@ $sites = [
         "blogID" => 59,
         "domain" => "dashboard.websitebuilder.service.justice.gov.uk",
         "path" => "dashboard",
+    ],
+
+    [
+        "blogID" => 62,
+        "domain" => "justiceinspectorates.gov.uk",
+        "path" => "inspectorates",
+    ],
+
+    [
+        "blogID" => 64,
+        "domain" => "nottingham.independent-inquiry.uk",
+        "path" => "nottingham",
     ]
 ];
 
