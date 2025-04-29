@@ -130,12 +130,6 @@ $sites = [
     ],
 
     [
-        "blogID" => 30,
-        "domain" => "lawcom.gov.uk",
-        "path" => "lc",
-    ],
-
-    [
         "blogID" => 31,
         "domain" => "jobs.justice.gov.uk",
         "path" => "jj",
@@ -199,6 +193,12 @@ $sites = [
         "blogID" => 53,
         "domain" => "hmppsinsights.service.justice.gov.uk",
         "path" => "hmppsinsights",
+    ],
+
+    [
+        "blogID" => 54,
+        "domain" => "lawcom.gov.uk",
+        "path" => "lawcomm",
     ],
 
     [
