@@ -1,4 +1,5 @@
 *.sql
+.php-cs-fixer.cache
 .env
 .DS_Store
 vendor/
@@ -6,3 +7,4 @@ builds/
 wordpress/
 storage/
 composer.lock
+
