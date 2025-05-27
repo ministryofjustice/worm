@@ -917,6 +917,10 @@ class MigrateCommand extends Command
         } else {
             $urlFlag = "--url=$domainPath";
         }
+
+        passthru("$containerExecCommand wp search-replace '$domainPath' 'https://$domain' $urlFlag --network --skip-columns=guid --report-changed-only");
+        passthru("$containerExecCommand wp db query 'UPDATE wp_blogs SET domain=\"$domain\" WHERE wp_blogs.blog_id=$siteID'");
+        passthru("$containerExecCommand wp db query 'UPDATE wp_blogs SET path=\"/\" WHERE wp_blogs.blog_id=$siteID'");
     }
 
     /* Perform domain rewrite prod to non-prod
@@ -934,6 +938,7 @@ class MigrateCommand extends Command
             $newDomainPath = "hale.docker";
             $domainPath = "https://hale.docker/$sitePath";
         } else {
+            $newDomainPath = "$this->target.websitebuilder.service.justice.gov.uk";
             $domainPath = "https://$this->target.websitebuilder.service.justice.gov.uk/$sitePath";
         }
 
