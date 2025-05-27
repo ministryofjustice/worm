@@ -226,5 +226,15 @@ $sites = [
     ]
 ];
 
+$url = 'https://websitebuilder.service.justice.gov.uk/wp-json/hc-rest/v1/sites/domain';
 
-    $container->instance('sites', $sites);
+$response = file_get_contents($url);
+
+if ($response === false) {
+    echo "error fetching data.";
+} else {
+    $data = json_decode($response, true);
+}
+
+$container->instance('sites', $data);
+

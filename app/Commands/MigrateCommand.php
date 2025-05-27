@@ -424,7 +424,6 @@ class MigrateCommand extends Command
     /**
      * Export the database from RDS to the container.
      *
-     * @param string $env The namespace.
      * @param string $sqlFile The SQL file path.
      * @return bool True if the export is successful; otherwise, false.
      */
@@ -529,6 +528,7 @@ class MigrateCommand extends Command
      * @param string $path The path of the SQL file.
      * @param string $sqlFile The SQL file name.
      * @return bool True if the deletion is successful; otherwise, false.
+     * @return bool True if the deletion is successful; otherwise, false.
      */
     private function deleteSqlFileFromLocal($path, $sqlFile)
     {
@@ -592,8 +592,10 @@ class MigrateCommand extends Command
 
         foreach ($sites as $site) {
             $domain = $site['domain'];
-            $sitePath = $site['path'];
+            $sitePath = $site['slug'];
             $siteID = $site['blogID'];
+
+                       
 
             // Only run the rewrite code once and for the matching single site and finish
             if ($this->blogID !== null && $blogID === $siteID) {
@@ -702,6 +704,8 @@ class MigrateCommand extends Command
         $sourceBucket = $sourceBucketjson_secrets['data']['S3_UPLOADS_BUCKET'];
 
         // Change uploads path depending of if single site or whole ms migration
+        $uploadsDir = ($blogID != null) ? "uploads/sites/$blogID" : "uploads";
+
         $uploadsDir = ($blogID != null) ? "uploads/sites/$blogID" : "uploads";
 
         $this->info("Sync $source s3 bucket with local uploads directory");
@@ -825,8 +829,12 @@ class MigrateCommand extends Command
         $sourceSiteURL = "$this->source.websitebuilder.service.justice.gov.uk";
         $targetSiteURL = "hale.docker";
 
+        if ($this->source === 'prod') {
+            $sourceSiteURL = "websitebuilder.service.justice.gov.uk";
+        }
+
         if ($this->blogID !== null) {
-            $urlFlag = "--url=$domainPath 'wp_{$this->blogID}_*' --all-tables-with-prefix";
+            $urlFlag = "--url=$targetSiteURL 'wp_{$this->blogID}_*' --all-tables-with-prefix";
         } else {
             $urlFlag = "--url=$sourceSiteURL";
         }
@@ -909,14 +917,9 @@ class MigrateCommand extends Command
         } else {
             $urlFlag = "--url=$domainPath";
         }
-
-        passthru("$containerExecCommand wp search-replace '$domainPath' 'https://$domain' $urlFlag --network --skip-columns=guid --report-changed-only");
-        passthru("$containerExecCommand wp db query 'UPDATE wp_blogs SET domain=\"$domain\" WHERE wp_blogs.blog_id=$siteID'");
-        passthru("$containerExecCommand wp db query 'UPDATE wp_blogs SET path=\"/\" WHERE wp_blogs.blog_id=$siteID'");
     }
 
-    /**
-     * Perform domain rewrite prod to non-prod
+    /* Perform domain rewrite prod to non-prod
      *
      * @param string $domain The domain of the site.
      * @param string $sitePath The path of the site.
@@ -931,7 +934,6 @@ class MigrateCommand extends Command
             $newDomainPath = "hale.docker";
             $domainPath = "https://hale.docker/$sitePath";
         } else {
-            $newDomainPath = "$this->target.websitebuilder.service.justice.gov.uk";
             $domainPath = "https://$this->target.websitebuilder.service.justice.gov.uk/$sitePath";
         }
 
@@ -985,3 +987,4 @@ class MigrateCommand extends Command
         passthru($command);
     }
 }
+

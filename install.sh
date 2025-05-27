@@ -14,14 +14,6 @@ then
     exit
 fi
 
-# Check we have AWS cli installed
-if ! command -v aws &> /dev/null
-then
-    echo "AWS cli could not found on this machine, and is a requirement
-    for WORM. Terminating install."
-    exit
-fi
-
 # Check we have kubectl installed
 if ! command -v kubectl &> /dev/null
 then
