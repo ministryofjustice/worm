@@ -629,7 +629,7 @@ class MigrateCommand extends Command
 
         foreach ($sites as $site) {
             $domain = $site['domain'];
-            $sitePath = $site['path'];
+            $sitePath = $site['slug'];
             $siteID = $site['blogID'];
 
             // Only run the rewrite code once and for the matching single site and finish
