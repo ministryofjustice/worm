@@ -544,7 +544,7 @@ class MigrateCommand extends Command
     }
 
     /**
-     * Replace database URLs to match the target environment.
+     * Replace database URLs to match the target cloud environment.
      *
      * @param string $env The target environment name.
      * @return bool True if the URL replacement is successful; otherwise, false.
@@ -552,10 +552,13 @@ class MigrateCommand extends Command
     private function replaceDatabaseURLs($env, $blogID)
     {
         // Define the old and new URLs based on the environment names
+        $sourceSiteURL = $this->source === 'prod' 
+            ? 'websitebuilder.service.justice.gov.uk'
+            : "{$this->source}.websitebuilder.service.justice.gov.uk";
 
-        $sourceSiteURL = "$this->source.websitebuilder.service.justice.gov.uk";
-
-        $targetSiteURL = "$this->target.websitebuilder.service.justice.gov.uk";
+        $targetSiteURL = $this->target === 'prod'
+            ? 'websitebuilder.service.justice.gov.uk' 
+            : "{$this->target}.websitebuilder.service.justice.gov.uk";
 
         // Get the pod execution command for the specified environment
         $containerExecCommand = $this->getExecCommand($env);
@@ -594,8 +597,6 @@ class MigrateCommand extends Command
             $domain = $site['domain'];
             $sitePath = $site['slug'];
             $siteID = $site['blogID'];
-
-                       
 
             // Only run the rewrite code once and for the matching single site and finish
             if ($this->blogID !== null && $blogID === $siteID) {
@@ -982,7 +983,7 @@ class MigrateCommand extends Command
         if ($this->blogID !== null) {
             $urlFlag = "--url=$targetSiteURL 'wp_{$blogID}_*' --all-tables-with-prefix";
         } else {
-            $urlFlag = "--url=$sourceSiteURL";
+            $urlFlag = "--url=$targetSiteURL";
         }
 
         $command = "$containerExecCommand wp search-replace $sourceBucket $targetBucket $urlFlag --network --precise --skip-columns=guid --report-changed-only --recurse-objects";
