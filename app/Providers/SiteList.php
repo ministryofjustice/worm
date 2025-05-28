@@ -7,7 +7,7 @@ $container = Container::getInstance();
 /**
  * Definitive site list that have production domains.
  * This site list is pulled from our Prod site list API.
- * 
+ *
  * This array contains a list of sites with their respective information.
  *
  * - 'blogID': The ID of the blog.
@@ -26,4 +26,3 @@ if ($response === false) {
 }
 
 $container->instance('sites', $data);
-

@@ -552,12 +552,12 @@ class MigrateCommand extends Command
     private function replaceDatabaseURLs($env, $blogID)
     {
         // Define the old and new URLs based on the environment names
-        $sourceSiteURL = $this->source === 'prod' 
+        $sourceSiteURL = $this->source === 'prod'
             ? 'websitebuilder.service.justice.gov.uk'
             : "{$this->source}.websitebuilder.service.justice.gov.uk";
 
         $targetSiteURL = $this->target === 'prod'
-            ? 'websitebuilder.service.justice.gov.uk' 
+            ? 'websitebuilder.service.justice.gov.uk'
             : "{$this->target}.websitebuilder.service.justice.gov.uk";
 
         // Get the pod execution command for the specified environment
@@ -993,4 +993,3 @@ class MigrateCommand extends Command
         passthru($command);
     }
 }
-
