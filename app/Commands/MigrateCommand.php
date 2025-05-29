@@ -120,16 +120,20 @@ class MigrateCommand extends Command
         $this->sourceNamespace = "hale-platform-$this->source";
 
         // Add the blog ID into the temp file if its a single site migration
-        $siteID = ($this->blogID !== null) ? 'site' . $this->blogID . '-' : '';
-        $this->sqlFile = $this->sourceNamespace . '-' . $siteID . date("Y-m-d-H-i-s") . '.sql';
+        $siteIDName = ($this->blogID !== null) ? 'site' . $this->blogID . '-' : '';
+        $this->sqlFile = $this->sourceNamespace . '-' . $siteIDName . date("Y-m-d-H-i-s") . '.sql';
 
         $this->path = rtrim(shell_exec('pwd'));
         $this->profile = "$this->sourceNamespace-s3";
 
-        // SSOT hardcoded list of production domains
-        // List can be updated in the SiteList.php
+        //Site list via prod API  
         $container = Container::getInstance();
         $this->sites = $container->get('sites');
+
+        if ($this->sites === null) {
+            $this->info("Unable to access site list from API. Exiting task.");
+            exit(0);
+        }
 
         // Do not allow migration from local to CP environments
         if ($this->source === 'local') {
@@ -511,7 +515,7 @@ class MigrateCommand extends Command
         $containerExecCommand = $this->getExecCommand($env);
 
         return $this->task("=> Delete container SQL file. No longer needed.", function () use ($containerExecCommand, $sqlFile) {
-            passthru("$containerExecCommand rm $sqlFile", $resultCode);
+            passthru("$containerExecCommand rm -r $sqlFile", $resultCode);
 
             if ($resultCode !== 0) {
                 $this->handleFailure("Failed to delete $sqlFile from container. Exiting task.");
@@ -570,7 +574,7 @@ class MigrateCommand extends Command
         }
 
         // Execute the URL replacement command
-        $command = "$containerExecCommand wp search-replace $sourceSiteURL $targetSiteURL $urlFlag --network --precise --skip-columns=guid --report-changed-only --recurse-objects";
+        $command = "$containerExecCommand wp search-replace $sourceSiteURL $targetSiteURL $urlFlag --precise --skip-columns=guid --report-changed-only --recurse-objects";
         passthru($command, $resultCode);
 
         // Check the result code and handle success or failure
@@ -599,6 +603,7 @@ class MigrateCommand extends Command
             $siteID = $site['blogID'];
 
             // Only run the rewrite code once and for the matching single site and finish
+            // SiteID here is the actual site ID whereas blogID is the inputed site ID from user
             if ($this->blogID !== null && $blogID === $siteID) {
                 $this->info($infoMsg);
                 $this->performDomainRewriteNonProd($domain, $sitePath, $containerExecCommand, $siteID);
@@ -705,8 +710,6 @@ class MigrateCommand extends Command
         $sourceBucket = $sourceBucketjson_secrets['data']['S3_UPLOADS_BUCKET'];
 
         // Change uploads path depending of if single site or whole ms migration
-        $uploadsDir = ($blogID != null) ? "uploads/sites/$blogID" : "uploads";
-
         $uploadsDir = ($blogID != null) ? "uploads/sites/$blogID" : "uploads";
 
         $this->info("Sync $source s3 bucket with local uploads directory");
@@ -840,9 +843,11 @@ class MigrateCommand extends Command
             $urlFlag = "--url=$sourceSiteURL";
         }
 
-        $command = "docker exec -it wordpress wp search-replace $sourceSiteURL $targetSiteURL $urlFlag --network --precise --skip-columns=guid --report-changed-only --recurse-objects";
+        $command = "docker exec -it wordpress wp search-replace $sourceSiteURL $targetSiteURL $urlFlag --precise --skip-columns=guid --report-changed-only --recurse-objects";
 
         // Execute the command and capture the result code
+        $this->info('Run initial URL Search and Replace');
+
         passthru($command, $resultCode);
 
         $resultCode = ($resultCode === 0) ? true : false;
@@ -919,7 +924,7 @@ class MigrateCommand extends Command
             $urlFlag = "--url=$domainPath";
         }
 
-        passthru("$containerExecCommand wp search-replace '$domainPath' 'https://$domain' $urlFlag --network --skip-columns=guid --report-changed-only");
+        passthru("$containerExecCommand wp search-replace '$domainPath' 'https://$domain' $urlFlag --skip-columns=guid --report-changed-only");
         passthru("$containerExecCommand wp db query 'UPDATE wp_blogs SET domain=\"$domain\" WHERE wp_blogs.blog_id=$siteID'");
         passthru("$containerExecCommand wp db query 'UPDATE wp_blogs SET path=\"/\" WHERE wp_blogs.blog_id=$siteID'");
     }
@@ -934,7 +939,6 @@ class MigrateCommand extends Command
      */
     private function performDomainRewriteNonProd(string $domain, string $sitePath, string $containerExecCommand, int $siteID)
     {
-
         if ($this->target === 'local') {
             $newDomainPath = "hale.docker";
             $domainPath = "https://hale.docker/$sitePath";
@@ -952,14 +956,24 @@ class MigrateCommand extends Command
             $urlFlag = "--url=$domain";
         }
 
-        passthru("$containerExecCommand wp search-replace 'https://$domain' '$domainPath' $urlFlag --network --skip-columns=guid --report-changed-only");
+        $this->info('Running search and replace on domains');
+
+        passthru("$containerExecCommand wp search-replace 'https://$domain' '$domainPath' $urlFlag --skip-columns=guid --report-changed-only");
+        
+        
+        $this->info('Updating site and url db values');
+        
         passthru("$containerExecCommand wp db query 'UPDATE wp_blogs SET domain=\"$newDomainPath\" WHERE wp_blogs.blog_id=$siteID'");
         passthru("$containerExecCommand wp db query 'UPDATE wp_blogs SET path=\"/$sitePath/\" WHERE wp_blogs.blog_id=$siteID'");
 
-
+        if ($this->target !== 'prod') {
+            passthru("$containerExecCommand wp cache flush --url=$domain");
+        }
+        
         if ($this->target === 'local') {
-            // Security measure: Deactivate the "wp-force-login" plugin for all sites in non-prod environments
-            passthru("$containerExecCommand wp plugin deactivate wp-force-login --url=$domainPath");
+            // Manage plugin activation locally
+            passthru("$containerExecCommand wp plugin deactivate wp-force-login");
+            passthru("$containerExecCommand wp plugin deactivate auth0");
         }
 
         if ($this->target !== 'local' && $this->target !== 'prod') {
@@ -993,3 +1007,4 @@ class MigrateCommand extends Command
         passthru($command);
     }
 }
+
