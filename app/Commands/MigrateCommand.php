@@ -570,8 +570,10 @@ class MigrateCommand extends Command
         if ($this->blogID !== null) {
             $urlFlag = "--url=$targetSiteURL 'wp_{$blogID}_*' --all-tables-with-prefix";
         } else {
-            $urlFlag = "--url=$sourceSiteURL";
+            $urlFlag = "--url=$sourceSiteURL --network";
         }
+
+        $this->info('Run URL db search and replace');
 
         // Execute the URL replacement command
         $command = "$containerExecCommand wp search-replace $sourceSiteURL $targetSiteURL $urlFlag --precise --skip-columns=guid --report-changed-only --recurse-objects";
