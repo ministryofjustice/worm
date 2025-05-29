@@ -126,7 +126,7 @@ class MigrateCommand extends Command
         $this->path = rtrim(shell_exec('pwd'));
         $this->profile = "$this->sourceNamespace-s3";
 
-        //Site list via prod API  
+        //Site list via prod API
         $container = Container::getInstance();
         $this->sites = $container->get('sites');
 
@@ -959,17 +959,17 @@ class MigrateCommand extends Command
         $this->info('Running search and replace on domains');
 
         passthru("$containerExecCommand wp search-replace 'https://$domain' '$domainPath' $urlFlag --skip-columns=guid --report-changed-only");
-        
-        
+
+
         $this->info('Updating site and url db values');
-        
+
         passthru("$containerExecCommand wp db query 'UPDATE wp_blogs SET domain=\"$newDomainPath\" WHERE wp_blogs.blog_id=$siteID'");
         passthru("$containerExecCommand wp db query 'UPDATE wp_blogs SET path=\"/$sitePath/\" WHERE wp_blogs.blog_id=$siteID'");
 
         if ($this->target !== 'prod') {
             passthru("$containerExecCommand wp cache flush --url=$domain");
         }
-        
+
         if ($this->target === 'local') {
             // Manage plugin activation locally
             passthru("$containerExecCommand wp plugin deactivate wp-force-login");
@@ -1007,4 +1007,3 @@ class MigrateCommand extends Command
         passthru($command);
     }
 }
-

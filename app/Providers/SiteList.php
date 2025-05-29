@@ -50,7 +50,7 @@ if (curl_errno($ch)) {
     // Get HTTP response code
     // Server responded with 200 OK, 404 Not Found, etc.
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    
+
     // Useful debug info about the request
     #$info = curl_getinfo($ch);
     #echo "HTTP Code: " . $httpCode . "\n";
@@ -61,12 +61,11 @@ if (curl_errno($ch)) {
     if ($httpCode === 200) {
         // Process successful response
         $data = json_decode($response, true);
-            
+
         if (json_last_error() !== JSON_ERROR_NONE) {
             echo "JSON Decode Error: " . json_last_error_msg() . "\n";
             $data = null;
         }
-    
     } else {
         echo "HTTP Error: Received status code $httpCode\n";
         $data = null;
@@ -79,4 +78,3 @@ curl_close($ch);
 if ($data !== null) {
     $container->instance('sites', $data);
 }
-
