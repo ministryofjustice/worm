@@ -1009,4 +1009,3 @@ class MigrateCommand extends Command
         passthru($command);
     }
 }
-
