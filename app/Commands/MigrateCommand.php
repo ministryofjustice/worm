@@ -258,9 +258,6 @@ class MigrateCommand extends Command
             $this->productionDatabaseDomainRewrite($target, $sites, $blogID);
         }
 
-        // Sync remote s3 bucket with local
-        $this->syncS3BucketToLocal($source, $path, $blogID);
-
         // Migration completed successfully
         $this->info("Migration $typeOfMigration complete 🐛. " . ucfirst($source) . " has been migrated to " . ucfirst($target));
     }
@@ -514,16 +511,14 @@ class MigrateCommand extends Command
     {
         $containerExecCommand = $this->getExecCommand($env);
 
-        return $this->task("=> Delete container SQL file. No longer needed.", function () use ($containerExecCommand, $sqlFile) {
-            passthru("$containerExecCommand rm -r $sqlFile", $resultCode);
+        passthru("$containerExecCommand rm -rf $sqlFile", $resultCode);
 
-            if ($resultCode !== 0) {
-                $this->handleFailure("Failed to delete $sqlFile from container. Exiting task.");
-                return false;
-            }
+        if ($resultCode !== 0) {
+            $this->handleFailure("Failed to delete $sqlFile from container. Exiting task.");
+            return false;
+        }
 
-            return true;
-        });
+        return true;
     }
 
     /**
@@ -536,7 +531,7 @@ class MigrateCommand extends Command
      */
     private function deleteSqlFileFromLocal($path, $sqlFile)
     {
-        $command = "rm $path/$sqlFile";
+        $command = "rm -rf $path/$sqlFile";
         passthru($command, $resultCode);
 
         if ($resultCode === 0) {
@@ -695,30 +690,6 @@ class MigrateCommand extends Command
     }
 
     /**
-     * Syncs an S3 bucket with the local machine.
-     *
-     * This method synchronizes files between an Amazon S3 bucket and the local machine using the AWS CLI.
-     *
-     * @param string $source The source environment representing the name of the S3 bucket.
-     * @param string $path The local path where the files should be synced to.
-     */
-    private function syncS3BucketToLocal($source, $path, $blogID)
-    {
-        $uploadsPath = $path . "/wordpress/wp-content";
-
-        $sourceBucketsecretName = $this->getSecretName($source);
-        $sourceBucketsecrets = $this->decodeSecrets($source);
-        $sourceBucketjson_secrets = json_decode($sourceBucketsecrets, true);
-        $sourceBucket = $sourceBucketjson_secrets['data']['S3_UPLOADS_BUCKET'];
-
-        // Change uploads path depending of if single site or whole ms migration
-        $uploadsDir = ($blogID != null) ? "uploads/sites/$blogID" : "uploads";
-
-        $this->info("Sync $source s3 bucket with local uploads directory");
-        passthru("aws s3 sync --profile hale-platform-$source-s3 s3://$sourceBucket/$uploadsDir $uploadsPath", $resultCode);
-    }
-
-    /**
      * Get the secret name.
      *
      * @param string $env The environment name.
@@ -842,13 +813,13 @@ class MigrateCommand extends Command
         if ($this->blogID !== null) {
             $urlFlag = "--url=$targetSiteURL 'wp_{$this->blogID}_*' --all-tables-with-prefix";
         } else {
-            $urlFlag = "--url=$sourceSiteURL";
+            $urlFlag = "--url=$sourceSiteURL --network";
         }
 
         $command = "docker exec -it wordpress wp search-replace $sourceSiteURL $targetSiteURL $urlFlag --precise --skip-columns=guid --report-changed-only --recurse-objects";
 
         // Execute the command and capture the result code
-        $this->info('Run initial URL Search and Replace');
+        $this->info('Run URL Search and Replace');
 
         passthru($command, $resultCode);
 
@@ -888,8 +859,6 @@ class MigrateCommand extends Command
      */
     private function updateCloudPlatformCli()
     {
-        $this->info("Check cloud-platform-cli is updated to the latest version");
-
         exec("brew update && brew upgrade cloud-platform-cli 2>/dev/null", $output, $resultCode);
 
         if ($resultCode !== 0) {
@@ -955,7 +924,7 @@ class MigrateCommand extends Command
         if ($this->blogID !== null) {
             $urlFlag = "--url=$domain 'wp_{$siteID}_*' --all-tables-with-prefix";
         } else {
-            $urlFlag = "--url=$domain";
+            $urlFlag = "--url=$domain --network";
         }
 
         $this->info('Running search and replace on domains');
