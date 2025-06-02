@@ -120,20 +120,16 @@ class MigrateCommand extends Command
         $this->sourceNamespace = "hale-platform-$this->source";
 
         // Add the blog ID into the temp file if its a single site migration
-        $siteIDName = ($this->blogID !== null) ? 'site' . $this->blogID . '-' : '';
-        $this->sqlFile = $this->sourceNamespace . '-' . $siteIDName . date("Y-m-d-H-i-s") . '.sql';
+        $siteID = ($this->blogID !== null) ? 'site' . $this->blogID . '-' : '';
+        $this->sqlFile = $this->sourceNamespace . '-' . $siteID . date("Y-m-d-H-i-s") . '.sql';
 
         $this->path = rtrim(shell_exec('pwd'));
         $this->profile = "$this->sourceNamespace-s3";
 
-        //Site list via prod API
+        // SSOT hardcoded list of production domains
+        // List can be updated in the SiteList.php
         $container = Container::getInstance();
         $this->sites = $container->get('sites');
-
-        if ($this->sites === null) {
-            $this->info("Unable to access site list from API. Exiting task.");
-            exit(0);
-        }
 
         // Do not allow migration from local to CP environments
         if ($this->source === 'local') {
@@ -428,6 +424,10 @@ class MigrateCommand extends Command
     /**
      * Export the database from RDS to the container.
      *
+
+    /**
+     * Export the database from RDS to the container.
+     *
      * @param string $sqlFile The SQL file path.
      * @return bool True if the export is successful; otherwise, false.
      */
@@ -528,10 +528,6 @@ class MigrateCommand extends Command
 
     /**
      * Delete SQL file on local machine.
-     *
-     * @param string $path The path of the SQL file.
-     * @param string $sqlFile The SQL file name.
-     * @return bool True if the deletion is successful; otherwise, false.
      * @return bool True if the deletion is successful; otherwise, false.
      */
     private function deleteSqlFileFromLocal($path, $sqlFile)
@@ -548,7 +544,7 @@ class MigrateCommand extends Command
     }
 
     /**
-     * Replace database URLs to match the target cloud environment.
+     * Replace database URLs to match the target environment.
      *
      * @param string $env The target environment name.
      * @return bool True if the URL replacement is successful; otherwise, false.
@@ -556,13 +552,10 @@ class MigrateCommand extends Command
     private function replaceDatabaseURLs($env, $blogID)
     {
         // Define the old and new URLs based on the environment names
-        $sourceSiteURL = $this->source === 'prod'
-            ? 'websitebuilder.service.justice.gov.uk'
-            : "{$this->source}.websitebuilder.service.justice.gov.uk";
 
-        $targetSiteURL = $this->target === 'prod'
-            ? 'websitebuilder.service.justice.gov.uk'
-            : "{$this->target}.websitebuilder.service.justice.gov.uk";
+        $sourceSiteURL = "$this->source.websitebuilder.service.justice.gov.uk";
+
+        $targetSiteURL = "$this->target.websitebuilder.service.justice.gov.uk";
 
         // Get the pod execution command for the specified environment
         $containerExecCommand = $this->getExecCommand($env);
@@ -570,13 +563,11 @@ class MigrateCommand extends Command
         if ($this->blogID !== null) {
             $urlFlag = "--url=$targetSiteURL 'wp_{$blogID}_*' --all-tables-with-prefix";
         } else {
-            $urlFlag = "--url=$sourceSiteURL --network";
+            $urlFlag = "--url=$sourceSiteURL";
         }
 
-        $this->info('Run URL db search and replace');
-
         // Execute the URL replacement command
-        $command = "$containerExecCommand wp search-replace $sourceSiteURL $targetSiteURL $urlFlag --precise --skip-columns=guid --report-changed-only --recurse-objects";
+        $command = "$containerExecCommand wp search-replace $sourceSiteURL $targetSiteURL $urlFlag --network --precise --skip-columns=guid --report-changed-only --recurse-objects";
         passthru($command, $resultCode);
 
         // Check the result code and handle success or failure
@@ -601,11 +592,10 @@ class MigrateCommand extends Command
 
         foreach ($sites as $site) {
             $domain = $site['domain'];
-            $sitePath = $site['slug'];
+            $sitePath = $site['path'];
             $siteID = $site['blogID'];
 
             // Only run the rewrite code once and for the matching single site and finish
-            // SiteID here is the actual site ID whereas blogID is the inputed site ID from user
             if ($this->blogID !== null && $blogID === $siteID) {
                 $this->info($infoMsg);
                 $this->performDomainRewriteNonProd($domain, $sitePath, $containerExecCommand, $siteID);
@@ -636,7 +626,7 @@ class MigrateCommand extends Command
 
         foreach ($sites as $site) {
             $domain = $site['domain'];
-            $sitePath = $site['slug'];
+            $sitePath = $site['path'];
             $siteID = $site['blogID'];
 
             // Only run the rewrite code once and for the matching single site and finish
@@ -704,6 +694,16 @@ class MigrateCommand extends Command
      */
     private function syncS3BucketToLocal($source, $path, $blogID)
     {
+        $uploadsPath = $path . "/wordpress/wp-content";
+
+        $sourceBucketsecretName = $this->getSecretName($source);
+        $sourceBucketsecrets = $this->decodeSecrets($source);
+        $sourceBucketjson_secrets = json_decode($sourceBucketsecrets, true);
+        $sourceBucket = $sourceBucketjson_secrets['data']['S3_UPLOADS_BUCKET'];
+
+        // Change uploads path depending of if single site or whole ms migration
+        $uploadsDir = ($blogID != null) ? "uploads/sites/$blogID" : "uploads";
+
         $uploadsPath = $path . "/wordpress/wp-content";
 
         $sourceBucketsecretName = $this->getSecretName($source);
@@ -916,22 +916,7 @@ class MigrateCommand extends Command
          // Search and replace only on the correct URL and blog ID if is single site migration
         if ($this->blogID !== null) {
             // Handles whether you are migrating to a domain on prod or the hale-platform infrastructure domain
-            // as we can have both types on production.
-            if ($domain !== null) {
-                $urlFlag = "--url=$domain 'wp_{$siteID}_*' --all-tables-with-prefix";
-            } else {
-                $urlFlag = "--url=$domainPath 'wp_{$siteID}_*' --all-tables-with-prefix";
-            }
-        } else {
-            $urlFlag = "--url=$domainPath";
-        }
-
-        passthru("$containerExecCommand wp search-replace '$domainPath' 'https://$domain' $urlFlag --skip-columns=guid --report-changed-only");
-        passthru("$containerExecCommand wp db query 'UPDATE wp_blogs SET domain=\"$domain\" WHERE wp_blogs.blog_id=$siteID'");
-        passthru("$containerExecCommand wp db query 'UPDATE wp_blogs SET path=\"/\" WHERE wp_blogs.blog_id=$siteID'");
-    }
-
-    /* Perform domain rewrite prod to non-prod
+     * Perform domain rewrite prod to non-prod
      *
      * @param string $domain The domain of the site.
      * @param string $sitePath The path of the site.
@@ -941,6 +926,7 @@ class MigrateCommand extends Command
      */
     private function performDomainRewriteNonProd(string $domain, string $sitePath, string $containerExecCommand, int $siteID)
     {
+
         if ($this->target === 'local') {
             $newDomainPath = "hale.docker";
             $domainPath = "https://hale.docker/$sitePath";
@@ -958,24 +944,14 @@ class MigrateCommand extends Command
             $urlFlag = "--url=$domain";
         }
 
-        $this->info('Running search and replace on domains');
-
-        passthru("$containerExecCommand wp search-replace 'https://$domain' '$domainPath' $urlFlag --skip-columns=guid --report-changed-only");
-
-
-        $this->info('Updating site and url db values');
-
+        passthru("$containerExecCommand wp search-replace 'https://$domain' '$domainPath' $urlFlag --network --skip-columns=guid --report-changed-only");
         passthru("$containerExecCommand wp db query 'UPDATE wp_blogs SET domain=\"$newDomainPath\" WHERE wp_blogs.blog_id=$siteID'");
         passthru("$containerExecCommand wp db query 'UPDATE wp_blogs SET path=\"/$sitePath/\" WHERE wp_blogs.blog_id=$siteID'");
 
-        if ($this->target !== 'prod') {
-            passthru("$containerExecCommand wp cache flush --url=$domain");
-        }
 
         if ($this->target === 'local') {
-            // Manage plugin activation locally
-            passthru("$containerExecCommand wp plugin deactivate wp-force-login");
-            passthru("$containerExecCommand wp plugin deactivate auth0");
+            // Security measure: Deactivate the "wp-force-login" plugin for all sites in non-prod environments
+            passthru("$containerExecCommand wp plugin deactivate wp-force-login --url=$domainPath");
         }
 
         if ($this->target !== 'local' && $this->target !== 'prod') {
@@ -999,7 +975,7 @@ class MigrateCommand extends Command
         if ($this->blogID !== null) {
             $urlFlag = "--url=$targetSiteURL 'wp_{$blogID}_*' --all-tables-with-prefix";
         } else {
-            $urlFlag = "--url=$targetSiteURL";
+            $urlFlag = "--url=$sourceSiteURL";
         }
 
         $command = "$containerExecCommand wp search-replace $sourceBucket $targetBucket $urlFlag --network --precise --skip-columns=guid --report-changed-only --recurse-objects";
@@ -1009,3 +985,4 @@ class MigrateCommand extends Command
         passthru($command);
     }
 }
+
