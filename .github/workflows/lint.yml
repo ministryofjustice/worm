@@ -56,22 +56,21 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        ERROR_LINES=$(grep -i "ERROR" $LINT_OUTPUT || true)
-        WARNING_COUNT=$(grep -i "WARNING" $LINT_OUTPUT | wc -l)
+        ERROR_LINES=$(grep -i "ERROR" "$LINT_OUTPUT" || true)
+        WARNING_COUNT=$(grep -i "WARNING" "$LINT_OUTPUT" | wc -l)
 
         if [ -n "$ERROR_LINES" ] || [ "$WARNING_COUNT" -gt 0 ]; then
           COMMENT_BODY=""
 
           if [ -n "$ERROR_LINES" ]; then
-            COMMENT_BODY+="❌ **Errors found during linting:**\n\n\`\`\`\n$ERROR_LINES\n\`\`\`\n"
+            COMMENT_BODY="${COMMENT_BODY}❌ **Errors found during linting:**\n\n\`\`\`\n${ERROR_LINES}\n\`\`\`\n"
           fi
 
           if [ "$WARNING_COUNT" -gt 0 ]; then
-            COMMENT_BODY+="⚠️ **$WARNING_COUNT warnings** were also found (not shown)."
+            COMMENT_BODY="${COMMENT_BODY}⚠️ **${WARNING_COUNT} warnings** were also found (not shown)."
           fi
 
-          # Escape the content for JSON payload
-          COMMENT_BODY_ESCAPED=$(echo "$COMMENT_BODY" | jq -Rs .)
+          COMMENT_BODY_ESCAPED=$(echo -e "$COMMENT_BODY" | jq -Rs .)
 
           curl -s -X POST \
             -H "Authorization: Bearer $GITHUB_TOKEN" \
@@ -80,3 +79,4 @@ jobs:
             "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments"
         else
           echo "No linting errors or warnings found."
+        fi
