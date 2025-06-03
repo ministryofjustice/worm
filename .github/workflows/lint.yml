@@ -1,23 +1,26 @@
 name: Apply linting and code sniffer
+
 on:
   pull_request:
     branches: [main]
     types: [opened, edited, reopened, synchronize]
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      LINT_OUTPUT: lint-results.txt
+
     steps:
-    # Step 1: Checkout code
     - name: Checkout code
       uses: actions/checkout@v4
       with:
         repository: ${{ github.event.pull_request.head.repo.full_name }}
         ref: ${{ github.event.pull_request.head.ref }}
-    # Step 2: Validate composer.json and composer.lock
+
     - name: Validate composer.json and composer.lock
       run: composer validate
-      # Validate composer.json and composer.lock files to ensure they are properly formatted.
-    # Step 3: Cache Composer packages
+
     - name: Cache Composer packages
       id: composer-cache
       uses: actions/cache@v4
@@ -26,36 +29,54 @@ jobs:
         key: ${{ runner.os }}-php-${{ hashFiles('**/composer.lock') }}
         restore-keys: |
           ${{ runner.os }}-php-
-      # Cache Composer packages to speed up dependency installation.
-    # Step 4: Install dependencies
+
     - name: Install dependencies
-      if: steps.composer-cache.outputs.cache-hit != 'true'
       run: composer install --prefer-dist --no-progress --no-suggest
-      # Install project dependencies using Composer if the cache is not hit.
-    # Step 5: Check PHP code standards violations (PSR-12 - Warning Only)
-    - name: Check PHP code standards violations (PSR-12 - Warning Only)
+
+    - name: Run PHPCBF dry-run (fixable violations)
       run: |
-        echo "::warning::Running PHP CodeSniffer to check PSR-12 code standards..."
-        composer phpcbf --standard=PSR12 --dry-run || echo "::warning::PHPCBF found PSR-12 fixable violations (dry-run mode)"
-        echo "::warning::PSR-12 code standards check completed. Review output above for any violations."
-      continue-on-error: true
-      # Check for PSR-12 PHP code standard violations without making changes (dry-run mode).
-    # Step 6: Set PHPCS config
+        echo "::group::Running PHPCBF dry-run..."
+        composer phpcbf --standard=PSR12 --dry-run > $LINT_OUTPUT || true
+        echo "::endgroup::"
+
     - name: Set PHPCS config
       run: composer phpcs-config-set
-      # Set PHPCS configuration to stop it exiting on a warning when linting.
-    # Step 7: Print lint results (PSR-12 - Warning Only)
-    - name: Print lint results (PSR-12 - Warning Only)
+
+    - name: Run PHPCS check (report-only)
       run: |
-        echo "::warning::Running PHPCS linting check for PSR-12 standards..."
-        composer phpcs --standard=PSR12 || echo "::warning::PHPCS found PSR-12 code standard violations. Please review and fix manually."
-        echo "::warning::PSR-12 linting check completed. No automatic fixes will be applied."
-      continue-on-error: true
-      # Run PHP CodeSniffer (phpcs) to check for PSR-12 code standard violations but only generate warnings.
-    # Step 8: Summary
-    - name: Linting Summary
+        echo "::group::Running PHPCS check..."
+        composer phpcs --standard=PSR12 >> $LINT_OUTPUT || true
+        echo "::endgroup::"
+
+    - name: Output Linting Results
+      run: cat $LINT_OUTPUT
+
+    - name: Leave PR comment if linting issues found
+      if: always()
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        echo "::notice::PSR-12 linting workflow completed successfully!"
-        echo "::notice::This workflow only generates warnings and does not commit any changes."
-        echo "::notice::Please review any PSR-12 violations above and make necessary fixes manually."
-      # Provide a summary of the PSR-12 linting workflow execution.
+        ERROR_LINES=$(grep -i "ERROR" $LINT_OUTPUT || true)
+        WARNING_COUNT=$(grep -i "WARNING" $LINT_OUTPUT | wc -l)
+
+        if [ -n "$ERROR_LINES" ] || [ "$WARNING_COUNT" -gt 0 ]; then
+          COMMENT_BODY=""
+
+          if [ -n "$ERROR_LINES" ]; then
+            COMMENT_BODY+="❌ **Errors found during linting:**\n\n\`\`\`\n$ERROR_LINES\n\`\`\`\n"
+          fi
+
+          if [ "$WARNING_COUNT" -gt 0 ]; then
+            COMMENT_BODY+="⚠️ **$WARNING_COUNT warnings** were also found (not shown)."
+          fi
+
+          # Escape the content for JSON payload
+          COMMENT_BODY_ESCAPED=$(echo "$COMMENT_BODY" | jq -Rs .)
+
+          curl -s -X POST \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"body\": $COMMENT_BODY_ESCAPED}" \
+            "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments"
+        else
+          echo "No linting errors or warnings found."
