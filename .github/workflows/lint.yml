@@ -63,11 +63,11 @@ jobs:
           COMMENT_BODY=""
 
           if [ -n "$ERROR_LINES" ]; then
-            COMMENT_BODY="${COMMENT_BODY}**Code linting results:**\n\n\`\`\`\n${ERROR_LINES}\n\`\`\`\n"
+            COMMENT_BODY="${COMMENT_BODY}**PHP Code linting results:**\n\n\`\`\`\n${ERROR_LINES}\n\`\`\`\n"
           fi
 
           if [ "$WARNING_COUNT" -gt 0 ]; then
-            COMMENT_BODY="${COMMENT_BODY}⚠️ **${WARNING_COUNT} warnings** were also found. Check GitAction build for more details."
+            COMMENT_BODY="${COMMENT_BODY}**${WARNING_COUNT} warnings** were found. Check GitAction build for more details."
           fi
 
           COMMENT_BODY_ESCAPED=$(echo -e "$COMMENT_BODY" | jq -Rs .)
