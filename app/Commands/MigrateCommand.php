@@ -924,7 +924,7 @@ class MigrateCommand extends Command
         if ($this->blogID !== null) {
             $urlFlag = "--url=$domain 'wp_{$siteID}_*' --all-tables-with-prefix";
         } else {
-            $urlFlag = "--url=$domain --network";
+            $urlFlag = "--url=$domain";
         }
 
         $this->info('Running search and replace on domains');
