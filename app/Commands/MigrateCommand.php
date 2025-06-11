@@ -341,7 +341,6 @@ class MigrateCommand extends Command
      */
     private function getPodName($env)
     {
-
         // Guard clause, we don't need to get a pod in the local environment
         if ($env === 'local') {
             return null;
@@ -433,8 +432,8 @@ class MigrateCommand extends Command
         $containerExecCommand = $this->getExecCommand($env);
 
         return $this->task("=> Export multisite database", function () use ($containerExecCommand, $sqlFile) {
-                $command = "$containerExecCommand wp db export --porcelain $sqlFile";
-                $output = shell_exec($command);
+            $command = "$containerExecCommand wp db export --porcelain $sqlFile";
+            $output = shell_exec($command);
         });
     }
 
@@ -456,7 +455,7 @@ class MigrateCommand extends Command
         }
 
         $this->task("=> Export single site database", function () use ($containerExecCommand, $tableNames) {
-                $output = shell_exec("$containerExecCommand wp db export --porcelain $this->sqlFile --tables='$tableNames'");
+            $output = shell_exec("$containerExecCommand wp db export --porcelain $this->sqlFile --tables='$tableNames'");
         });
     }
 
@@ -882,7 +881,7 @@ class MigrateCommand extends Command
 
         $this->info($domain);
 
-         // Search and replace only on the correct URL and blog ID if is single site migration
+        // Search and replace only on the correct URL and blog ID if is single site migration
         if ($this->blogID !== null) {
             // Handles whether you are migrating to a domain on prod or the hale-platform infrastructure domain
             // as we can have both types on production.
@@ -911,9 +910,22 @@ class MigrateCommand extends Command
     private function performDomainRewriteNonProd(string $domain, string $sitePath, string $containerExecCommand, int $siteID)
     {
         if ($this->target === 'local') {
+            // We check against the production subdomain because this function loops through the
+            // site list API to find domains.
+            // At this point $domain however has been changed to {site}.hale.docker
+            // by prevous search-replace so we want to make sure that is the domain
+            // being used by --url flag when running the next find-replace.
+            if (str_ends_with($domain, '.websitebuilder.service.justice.gov.uk')) {
+                $domain = $sitePath . '.hale.docker';
+            }
+
             $newDomainPath = "hale.docker";
             $domainPath = "https://hale.docker/$sitePath";
         } else {
+            // Cloud to cloud migrations
+            if (str_ends_with($domain, '.websitebuilder.service.justice.gov.uk')) {
+                $domain = $sitePath . "." . $this->target . '.websitebuilder.service.justice.gov.uk';
+            }
             $newDomainPath = "$this->target.websitebuilder.service.justice.gov.uk";
             $domainPath = "https://$this->target.websitebuilder.service.justice.gov.uk/$sitePath";
         }
@@ -928,12 +940,9 @@ class MigrateCommand extends Command
         }
 
         $this->info('Running search and replace on domains');
-
         passthru("$containerExecCommand wp search-replace 'https://$domain' '$domainPath' $urlFlag --skip-columns=guid --report-changed-only");
 
-
         $this->info('Updating site and url db values');
-
         passthru("$containerExecCommand wp db query 'UPDATE wp_blogs SET domain=\"$newDomainPath\" WHERE wp_blogs.blog_id=$siteID'");
         passthru("$containerExecCommand wp db query 'UPDATE wp_blogs SET path=\"/$sitePath/\" WHERE wp_blogs.blog_id=$siteID'");
 
