@@ -600,7 +600,7 @@ class MigrateCommand extends Command
 
             // Only run the rewrite code once and for the matching single site and finish
             // SiteID here is the actual site ID whereas blogID is the inputed site ID from user
-            if ($this->blogID !== null && $blogID === $siteID) {
+            if ($this->blogID !== null && $blogID === (int)$siteID) {
                 $this->info($infoMsg);
                 $this->performDomainRewriteNonProd($domain, $sitePath, $containerExecCommand, $siteID);
             }
@@ -634,7 +634,7 @@ class MigrateCommand extends Command
             $siteID = $site['blogID'];
 
             // Only run the rewrite code once and for the matching single site and finish
-            if ($this->blogID !== null && $blogID === $siteID) {
+            if ($this->blogID !== null && $blogID === (int)$siteID) {
                 $this->performDomainRewriteProd($domain, $sitePath, $containerExecCommand, $siteID);
                 return;
             }
@@ -800,7 +800,6 @@ class MigrateCommand extends Command
      */
     private function replaceDatabaseURLsLocal()
     {
-
         // Define the old and new URLs based on the environment names
         $sourceSiteURL = "$this->source.websitebuilder.service.justice.gov.uk";
         $targetSiteURL = "hale.docker";
@@ -918,7 +917,6 @@ class MigrateCommand extends Command
             if (str_ends_with($domain, '.websitebuilder.service.justice.gov.uk')) {
                 $domain = $sitePath . '.hale.docker';
             }
-
             $newDomainPath = "hale.docker";
             $domainPath = "https://hale.docker/$sitePath";
         } else {
@@ -973,7 +971,6 @@ class MigrateCommand extends Command
      */
     public function stringReplaceS3BucketName($sourceBucket, $targetBucket, $targetSiteURL, $containerExecCommand, $blogID)
     {
-
         if ($this->blogID !== null) {
             $urlFlag = "--url=$targetSiteURL 'wp_{$blogID}_*' --all-tables-with-prefix";
         } else {
