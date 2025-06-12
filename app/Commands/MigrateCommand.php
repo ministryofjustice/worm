@@ -646,6 +646,28 @@ class MigrateCommand extends Command
         }
     }
 
+
+
+    /**
+     * Get the secret name.
+     *
+     * @param string $env The environment name.
+     */
+    private function getSecretName($env)
+    {
+        // Local environment doesn't have secrets
+        if ($env === 'local') {
+            return;
+        }
+
+        $podName = $this->getPodName($env);
+
+        $command = "kubectl describe -n hale-platform-$env pods/$podName | grep -o 'hale-wp-secrets-[[:digit:]]*'";
+        $output = shell_exec($command);
+
+        return rtrim($output);
+    }
+
     /**
      * Syncs an S3 bucket with the target environment.
      *
@@ -686,26 +708,6 @@ class MigrateCommand extends Command
         $this->info('=> AWS s3 bucket sync');
 
         passthru("kubectl exec -it -n hale-platform-$source $servicePodName -- bin/sh -c \"aws s3 sync s3://$sourceBucket/$uploadsDir s3://$targetBucket/$uploadsDir --acl=public-read\"");
-    }
-
-    /**
-     * Get the secret name.
-     *
-     * @param string $env The environment name.
-     */
-    private function getSecretName($env)
-    {
-        // Local environment doesn't have secrets
-        if ($env === 'local') {
-            return;
-        }
-
-        $podName = $this->getPodName($env);
-
-        $command = "kubectl describe -n hale-platform-$env pods/$podName | grep -o 'hale-wp-secrets-[[:digit:]]*'";
-        $output = shell_exec($command);
-
-        return rtrim($output);
     }
 
     /**
@@ -971,6 +973,7 @@ class MigrateCommand extends Command
      */
     public function stringReplaceS3BucketName($sourceBucket, $targetBucket, $targetSiteURL, $containerExecCommand, $blogID)
     {
+
         if ($this->blogID !== null) {
             $urlFlag = "--url=$targetSiteURL 'wp_{$blogID}_*' --all-tables-with-prefix";
         } else {
