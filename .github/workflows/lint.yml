@@ -67,8 +67,11 @@ jobs:
           fi
 
           if [ "$WARNING_COUNT" -gt 0 ]; then
-            COMMENT_BODY="${COMMENT_BODY}**${WARNING_COUNT} warnings** were found. Check GitAction build for more details."
+            COMMENT_BODY="${COMMENT_BODY}**${WARNING_COUNT} warnings** were found. Check GitHub Action build for more details.\n\n"
           fi
+
+          # 👇 Add local linting instructions
+          COMMENT_BODY="${COMMENT_BODY}---\n\nTo check or fix code locally:\n- Run \`composer phpcs --standard=PSR12\` to check code\n- Run \`composer phpcbf --standard=PSR12\` to auto-fix code"
 
           COMMENT_BODY_ESCAPED=$(echo -e "$COMMENT_BODY" | jq -Rs .)
 
@@ -80,3 +83,4 @@ jobs:
         else
           echo "No linting errors or warnings found."
         fi
+
