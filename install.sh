@@ -14,14 +14,6 @@ then
     exit
 fi
 
-# Check we have AWS cli installed
-if ! command -v aws &> /dev/null
-then
-    echo "AWS cli could not found on this machine, and is a requirement
-    for WORM. Terminating install."
-    exit
-fi
-
 # Check we have kubectl installed
 if ! command -v kubectl &> /dev/null
 then
@@ -40,9 +32,10 @@ then
 fi
 
 # Build binary of latest worm
-php worm app:build --build-version=1.0.0 --no-interaction
+php worm app:build --build-version=2.0.0 --no-interaction
 
 # System link to add build to local $PATH
 sudo ln -s $dir/builds/worm /usr/local/bin/worm
 
 echo "WORM installed successfully"
+
