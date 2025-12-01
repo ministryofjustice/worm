@@ -20,15 +20,12 @@ WORM targets the following environments, `Local`, `Demo`, `Dev`, `Staging` & `Pr
 * Check WordPress sites installed on multisite and their blog ids.
 * Display secrets `worm status --secrets`
 * Display list of sites on multisite cluster `worm listSites`
-* Setup AWS Profiles for s3, rds and ecr list for current namespace `worm setup:createProfiles`
 * Migrate - `worm migrate <source> <target>` will move the database and s3
   assets from one environment to another. Todo: currently only works with
   staging, dev, demo migrating to local.
 
 ## Required
 
-* [AWS
-  Cli](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) setup on your local machine
 * [PHP Composer](https://getcomposer.org/) - generates the /vendor folder with
   autoloader that is required to run app.
 * [Authentication to
