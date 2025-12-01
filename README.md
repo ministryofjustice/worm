@@ -58,12 +58,6 @@ You will also need to have `AWS`, `kubectl`, `cloud-platform` and
 If successfull, you should be able to run `worm` in your terminal window and
 see it load the worm command options.
 
-Step 5: Run `worm create:profiles`. This creates a standard and
-unique set of aws profiles in your computer's root directory in the `.aws`
-folder. Make sure to run this in each kubernetes namespace. To change namespace
-you need to be authenticated to the CloudPlatform already and have the
-program `kubens` installed. Then you can run `kubens <namespace>` to swap
-around to your desired namespace.
 
 ## Quick guide
 
