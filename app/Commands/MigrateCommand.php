@@ -432,7 +432,7 @@ class MigrateCommand extends Command
         $containerExecCommand = $this->getExecCommand($env);
 
         return $this->task("=> Export multisite database", function () use ($containerExecCommand, $sqlFile) {
-            $command = "$containerExecCommand wp db export --porcelain $sqlFile";
+            $command = "$containerExecCommand wp db export --porcelain $sqlFile --exclude_tables=wp_users,wp_usermeta";
             $output = shell_exec($command);
         });
     }
