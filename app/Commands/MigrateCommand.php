@@ -15,7 +15,8 @@ class MigrateCommand extends Command
      */
     protected $signature = 'migrate { source : Environment you are migrating from } { target : Environment you are migrating to }
                             {--blogID= : Blog ID of single site you wish to migrate }
-                            {--keepProdDomain= : Keep production domain even if migrating to non-prod env (true or false)}';
+                            {--keepProdDomain= : Keep production domain even if migrating to non-prod env (true or false)}
+                            {--migrateUsers= : For a whole multisite migration should users be migrated. Users are not migrated by default, (true or false)}';
 
     /**
      * The description of the command.
@@ -103,6 +104,13 @@ class MigrateCommand extends Command
      */
     protected $keepProdDomain;
 
+     /**
+     * Should User DB Tables be migrated
+     *
+     * @var bool|false
+     */
+    protected $migrateUsers;
+
     /**
      * Execute the console command.
      *
@@ -115,6 +123,7 @@ class MigrateCommand extends Command
         $this->target = $this->argument('target');
         $this->blogID = is_numeric($this->option('blogID')) ? $this->option('blogID') : null;
         $this->keepProdDomain = $this->option('keepProdDomain') ? $this->option('keepProdDomain') : null;
+        $this->migrateUsers = $this->option('migrateUsers') ? $this->option('migrateUsers') : 'false';
 
         // Set namespace and file naming
         $this->sourceNamespace = "hale-platform-$this->source";
@@ -431,8 +440,14 @@ class MigrateCommand extends Command
     {
         $containerExecCommand = $this->getExecCommand($env);
 
-        return $this->task("=> Export multisite database", function () use ($containerExecCommand, $sqlFile) {
-            $command = "$containerExecCommand wp db export --porcelain $sqlFile";
+        $excludeTables = '';
+
+        if ($this->migrateUsers == 'false') {
+            $excludeTables = '--exclude_tables=wp_users,wp_usermeta';
+        }
+
+        return $this->task("=> Export multisite database", function () use ($containerExecCommand, $sqlFile, $excludeTables) {
+            $command = "$containerExecCommand wp db export --porcelain $sqlFile $excludeTables";
             $output = shell_exec($command);
         });
     }
