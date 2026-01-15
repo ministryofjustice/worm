@@ -309,7 +309,6 @@ class MigrateCommand extends Command
 
         // Delete SQL file from the container
         $this->deleteSqlFileFromContainer($source, $sqlFile);
-        
         // Copy SQL file from the local machine to the target container
         $this->copySqlFileToContainer($target, $sqlFile);
 
@@ -337,7 +336,6 @@ class MigrateCommand extends Command
 
         // Update s3 bucket media assets, docs, images, etc. with the target environment
         $this->syncS3BucketWithTarget($source, $target, $blogID);
-        
         // Migration completed successfully
         $this->info("Migration $typeOfMigration complete 🐛. " . ucfirst($source) . " has been migrated to " . ucfirst($target));
     }
@@ -442,10 +440,8 @@ class MigrateCommand extends Command
 
         $excludeTables = '';
 
-        $excludeTables = '--exclude_tables=wp_users,wp_usermeta';
-
-        if ($this->migrateUsers == 'true') {
-            $excludeTables = '';
+        if ($this->migrateUsers == 'false') {
+            $excludeTables = '--exclude_tables=wp_users,wp_usermeta';
         }
 
         return $this->task("=> Export multisite database", function () use ($containerExecCommand, $sqlFile, $excludeTables) {
