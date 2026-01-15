@@ -309,6 +309,7 @@ class MigrateCommand extends Command
 
         // Delete SQL file from the container
         $this->deleteSqlFileFromContainer($source, $sqlFile);
+
         // Copy SQL file from the local machine to the target container
         $this->copySqlFileToContainer($target, $sqlFile);
 
@@ -336,6 +337,7 @@ class MigrateCommand extends Command
 
         // Update s3 bucket media assets, docs, images, etc. with the target environment
         $this->syncS3BucketWithTarget($source, $target, $blogID);
+
         // Migration completed successfully
         $this->info("Migration $typeOfMigration complete 🐛. " . ucfirst($source) . " has been migrated to " . ucfirst($target));
     }
