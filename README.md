@@ -82,8 +82,8 @@ Migrate command examples:
 Migrate entire multisite from staging to demo:
 `worm migrate staging demo`
 
-Migrate single site from staging to demo
-`worm migrate staging demo --blogID=2` (Every site has its own blogID)
+Migrate single site from demo to local
+`worm migrate demo local --blogID=56` (Every site has its own blogID)
 
 Move an entire ms migration from staging to local
 `worm migrate staging local`
