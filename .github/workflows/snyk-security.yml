@@ -1,0 +1,45 @@
+name: Snyk Security
+
+on:
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '12 8 * * 2'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  snyk:
+    permissions:
+      actions: read
+      contents: read
+      statuses: read
+      security-events: write
+    runs-on: ubuntu-latest
+    env:
+      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Snyk CLI
+        uses: snyk/actions/setup@9adf32b1121593767fc3c057af55b55db032dc04
+
+      # Run Snyk Code (SAST) analysis and produce SARIF for GitHub Code Scanning.
+      - name: Code (SAST) test
+        run: snyk code test --sarif > snyk-code.sarif || true
+
+      - name: PHP dependency test
+        uses: snyk/actions/php@9adf32b1121593767fc3c057af55b55db032dc04 # v1.0.0
+        continue-on-error: true
+
+      - name: Upload result to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@54f647b7e1bb85c95cddabcd46b0c578ec92bc1a # v4.36.3
+        with:
+          sarif_file: snyk-code.sarif
