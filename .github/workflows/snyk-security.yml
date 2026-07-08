@@ -33,7 +33,8 @@ jobs:
 
       # Run Snyk Code (SAST) analysis and produce SARIF for GitHub Code Scanning.
       - name: Code (SAST) test
-        run: snyk code test --sarif > snyk-code.sarif || true
+        run: snyk code test --sarif > snyk-code.sarif
+        continue-on-error: true
 
       - name: PHP dependency test
         uses: snyk/actions/php@9adf32b1121593767fc3c057af55b55db032dc04 # v1.0.0
