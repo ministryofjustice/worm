@@ -19,7 +19,7 @@ WORM works with five environments: `local`, `demo`, `dev`, `staging` and `prod`.
 
 Make sure the following are installed and configured before installing WORM:
 
-* [PHP](https://www.php.net/) and [Composer](https://getcomposer.org/)
+* [PHP](https://www.php.net/) 8.2 or later and [Composer](https://getcomposer.org/)
 * [kubectl, authenticated to the Cloud Platform cluster](https://user-guide.cloud-platform.service.justice.gov.uk/documentation/getting-started/kubectl-config.html)
 * [Cloud Platform CLI](https://user-guide.cloud-platform.service.justice.gov.uk/documentation/getting-started/cloud-platform-cli.html#cloud-platform-cli)
   (`brew install ministryofjustice/cloud-platform-tap/cloud-platform-cli`)
@@ -50,8 +50,54 @@ Make sure the following are installed and configured before installing WORM:
    `worm` is available from any directory. You will be prompted for your
    password so the symlink can be created.
 
+   `make install` first asks whether you want to tag a new version. Press
+   enter to skip and build the version already tagged — see
+   [Releasing a new version](#releasing-a-new-version) if you do want to bump it.
+
 To verify the install, run `worm` in a new terminal window — you should see
-the list of available commands.
+the list of available commands. `worm --version` shows the installed version.
+
+Re-run `make install` at any time to rebuild and repoint the symlink at the
+latest build.
+
+### Install options
+
+| Variable | Purpose |
+| --- | --- |
+| `VERSION` | Version to tag and build, skipping the prompt, e.g. `make install VERSION=2.1.0` |
+| `WORM_VERSION` | Version to build **without** tagging, e.g. `WORM_VERSION=2.1.0-rc1 make install` |
+| `WORM_BIN_DIR` | Directory to symlink into, instead of `/usr/local/bin`, e.g. `WORM_BIN_DIR=~/bin make install` |
+
+Running `./install.sh` directly works the same way, and takes the version as
+its first argument (`./install.sh 2.1.0`) — it just does not offer to tag.
+
+## Releasing a new version
+
+The version stamped into the binary comes from the git tags, so releasing is a
+matter of tagging the commit you want to ship:
+
+```sh
+make install
+# Current version: 2.0.0
+# New version to tag (blank to build 2.0.0): 2.0.1
+```
+
+That creates an annotated `2.0.1` tag on the current commit and builds the
+binary at that version. Then push the tag:
+
+```sh
+git push origin 2.0.1
+```
+
+Points to watch:
+
+* Tag the commit you are shipping. The version is read from the tags on the
+  checked-out commit, so merge your work to `main` before tagging it.
+* `make install` never pushes. It prints the `git push` command for you to run.
+* Tagging is refused if the version already exists, so re-running the install
+  cannot move an existing release tag.
+* Without any tags — a source download rather than a clone, say — the build
+  falls back to `WORM_FALLBACK_VERSION` in `install.sh`.
 
 ## Command reference
 
